@@ -26,6 +26,9 @@ usage() {
     echo "  --no-check                                  Do not attempt to contact the site initially."
     echo "  -v, --verbose                               Verbose mode."
     echo
+    echo -e "\033[1mMode sub only:\033[0m"
+    echo "  --no-crt                                    Do not check information from crt.sh|Certificate Search."
+    echo
     echo -e "\033[1mMode dir only:\033[0m"
     echo "  --no-slash                                  Do not add a final '/' to the directory name."
     echo
@@ -34,6 +37,30 @@ usage() {
     echo "  $0 --mode dir -u https://other.domain.com/somedire/ -w directories.list --ignore-cert"
     echo "  $0 -m file -u https://www.another.com/files -w files.list --ignore-cert -z 200"
     echo "  $0 -m dir -u https://againandagain.com/ -w directories.list --no-check --no-slash --verbose"
+    echo
+}
+
+# crt.sh|Certificate Search check
+crt() {
+    echo " Requesting crt.sh..."
+    # Curl request to retrieve the JSON list
+    req=$(curl -s "https://crt.sh/?q=${domain}&output=json")
+
+    if [ $? -ne 0 ] || [ -z "$req" ]; then
+        echo -e "[!] Information from crt.sh|Certificate Search are not available.\n"
+        return
+    fi
+
+    # Extract subdomains with jq
+    mapfile -t subdomains < <(echo "$req" | jq -r '.[].name_value')
+
+    # Sort and remove duplicates
+    subdomains=($(printf "%s\n" "${subdomains[@]}" | sort -u))
+
+    echo -e "[!] Information from crt.sh|Certificate Search\n"
+    for subdomain in "${subdomains[@]}"; do
+        echo "  $subdomain"
+    done
     echo
 }
 
@@ -56,6 +83,7 @@ while [[ "$#" -gt 0 ]]; do
         -z|--timer) TIMER=$2; shift ;;
         --no-check) NOCHECK=1 ;;
         -v|--verbose) VERBOSE=1 ;;
+        --no-crt) NOCRT=1 ;;
         --no-slash) NOSLASH=1 ;;
         *) echo -e "\nError : Bad argument $1.\n"; exit 1 ;;
     esac
@@ -67,31 +95,40 @@ echo -e "---+++===[ Web Buster ]===+++---\n A Web search tool for subdomains, di
 
 # Required arguments
 if [[ -z "$MODE" ]]; then
-    echo -e "\nError : --mode is required.\n"
+    echo -e "Error : --mode is required.\n"
     exit 1
 elif [[ -z "$URL" ]]; then
-    echo -e "\nError : --url is required.\n"
+    echo -e "Error : --url is required.\n"
     exit 1
 elif [[ -z "$WORDS" ]]; then
-    echo -e "\nError : --wordlist is required.\n"
+    echo -e "Error : --wordlist is required.\n"
     exit 1
 fi
 
 # Bad argument
 if [[ "$MODE" == "sub" ]]; then
     if [[ $NOSLASH == 1 ]]; then
-        echo -e "\nError : Bad argument --no-slash.\n"
+        echo -e "Error : Bad argument --no-slash.\n"
         exit 1
     fi
 elif [[ "$MODE" == "file" ]]; then
     if [[ $NOSLASH == 1 ]]; then
-        echo -e "\nError : Bad argument --no-slash.\n"
+        echo -e "Error : Bad argument --no-slash.\n"
+        exit 1
+    fi
+    if [[ $NOCRT == 1 ]]; then
+        echo -e "Error : Bad argument --no-crt.\n"
         exit 1
     fi
 # Bad mode
 elif [[ "$MODE" != "dir" ]]; then
-    echo -e "\nError : Bad mode : $MODE.\n"
+    echo -e "Error : Bad mode : $MODE.\n"
     exit 1
+else
+    if [[ $NOCRT == 1 ]]; then
+        echo -e "Error : Bad argument --no-crt.\n"
+        exit 1
+    fi
 fi
 
 # Check whether the URL begins with HTTP or HTTPS
@@ -112,7 +149,7 @@ if [[ $URL =~ ^(https?://)([^/]+) ]]; then
             echo "[+] MODE : Directory Buster"
         fi
     fi
-    echo "[+] TARGET : $URL"
+    echo -e "[+] TARGET : $URL\n"
 else
     echo -e "Error : Bad URL format.\n"
     exit 1
@@ -121,7 +158,7 @@ fi
 # If a timer is defined, it must be an integer
 if [[ -v TIMER ]]; then
     if [[ ! "$TIMER" =~ ^[0-9]+$ ]]; then
-        echo -e "\nError : Time must be expressed in milliseconds.\n"
+        echo -e "Error : Time must be expressed in milliseconds.\n"
         exit 1
     fi
 fi
@@ -139,13 +176,21 @@ if [[ $NOCHECK != 1 ]]; then
         CHECK_CODE=$(curl -s -o /dev/null -w "%{http_code}" $URL)
     fi
     if [[ "$CHECK_CODE" == "000" ]]; then
-        echo -e "\nError : The provided URL seems to be down.\n"
+        echo -e "Error : The provided URL seems to be down.\n"
         exit 1
     fi
 fi
 
-# Add a blank line for clarity
-echo -e " Searching...\n"
+# Call crt to request crt.sh|Certificate Search
+if [[ "$MODE" == "sub" ]]; then
+    if [[ $NOCRT != 1 ]]; then
+        crt
+    fi
+fi
+
+echo " Searching..."
+echo -e "[!] Enumeration in progress...\n"
+
 # Number of loot items
 DISCOVERED=0
 # Check the HTTP code and display discoveries
