@@ -1,8 +1,8 @@
 # Web Buster
 Search for subdomains, directories, and files for a given URL.</br>
 ## Requirements
-curl</br>
-bc</br></br>
+- curl</br>
+- bc</br></br>
 `apt install curl bc`</br>
 ## Usage
 ./buster.sh -m &lt;mode&gt; -u &lt;URL&gt; -w &lt;wordlist&gt; [--ignore-cert] [-z &lt;milliseconds&gt;] [--no-check] [[--no-slash]]</br>
