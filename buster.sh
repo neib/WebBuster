@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Search for subdomains, directories, and files for a given URL.
-# Usage: $0 -m <mode> -u <URL> -w <wordlist> [--ignore-cert] [-z <milliseconds>] [--no-check] [[--no-slash]]
+# Usage: $0 -m <mode> -u <URL> -w <wordlist> [--ignore-cert] [-z <milliseconds>] [--no-check] [[--no-slash]] [-v]
 # Example: $0 -m sub -u https://example.com -w subdomains.list
 
 # Print help
@@ -9,7 +9,7 @@ usage() {
     echo "---+++===[ Web Buster ]===+++---"
     echo " A Web search tool for subdomains, directories, and files."
     echo
-    echo -e "    \033[1mUsage:\033[0m $0 -m <mode> -u <URL> -w <wordlist> [--ignore-cert] [-z <milliseconds>] [--no-check] [[--no-slash]]"
+    echo -e "    \033[1mUsage:\033[0m $0 -m <mode> -u <URL> -w <wordlist> [--ignore-cert] [-z <milliseconds>] [--no-check] [[--no-slash]] [-v]"
     echo
     echo -e "\033[1mArguments:\033[0m"
     echo "  -h, --help                                  Print this help."
@@ -33,14 +33,14 @@ usage() {
     echo "  $0 -m sub -u http://domain.com -w subdomains.list"
     echo "  $0 --mode dir -u https://other.domain.com/somedire/ -w directories.list --ignore-cert"
     echo "  $0 -m file -u https://www.another.com/files -w files.list --ignore-cert -z 200"
-    echo "  $0 -m dir -u https://againandagain.com/ -w directories.list --no-check --no-slash"
+    echo "  $0 -m dir -u https://againandagain.com/ -w directories.list --no-check --no-slash --verbose"
     echo
 }
 
 # No argument, print Usage and exit
 if [[ $# -eq 0 ]]; then
     echo -e "---+++===[ Web Buster ]===+++---\n A Web search tool for subdomains, directories, and files.\n"
-    echo -e "\033[1mUsage:\033[0m $0 -m <mode> -u <URL> -w <wordlist> [--ignore-cert] [-z <milliseconds>] [[--no-slash]]\n"
+    echo -e "\033[1mUsage:\033[0m $0 -m <mode> -u <URL> -w <wordlist> [--ignore-cert] [-z <milliseconds>] [[--no-slash]] [-v]\n"
     echo -e "Type '$0 --help' for more information."
     exit 1
 fi
