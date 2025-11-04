@@ -7,7 +7,7 @@
 # Print help
 usage() {
     echo "---+++===[ Web Buster ]===+++---"
-    echo " A Web search tool for subdomains, directories, and files."
+    echo " A Web search tool for subdomains, directories, and files for a given URL."
     echo
     echo -e "    \033[1mUsage:\033[0m $0 -m <mode> -u <URL> -w <wordlist> [--ignore-cert] [-z <milliseconds>] [--no-check] [[--no-slash]] [-v]"
     echo
