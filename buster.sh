@@ -35,10 +35,19 @@ usage() {
     echo
     echo -e "\033[1mExamples:\033[0m"
     echo "  $0 -m sub -u http://domain.com -w subdomains.list"
+    echo " * Subdomain discovery for 'http://domain.com' using the wordlist 'subdomains.list'."
+    echo
     echo "  $0 --mode dir -u https://other.domain.com/somedire/ -w directories.list --ignore-cert"
+    echo " * Directory discovery for 'https://other.domain.com/somedire/' using the wordlist 'directories.list' and ignoring secutity certificates."
+    echo
     echo "  $0 -m file -u https://www.another.com/files -w files.list --ignore-cert -z 200"
+    echo " * File discovery for 'https://www.another.com/files/' using the wordlist 'files.list' with a delay of 0.2s and ignoring secutity certificates."
+    echo
     echo "  $0 -m dir -u https://againandagain.com/ -w directories.list --no-check --no-slash --verbose"
+    echo " * Directory discovery for 'https://againandagain.com/' using the wordlist 'directories.list'. Does not check if the target is up, does not add a final '/' to the directory name and display the currently tested directory."
+    echo
     echo "  $0 --mode sub -u https://againagainagain.com -c"
+    echo " * Subdomain discovery for 'https://gainagainagain.com' using the wordlist 'subdomains.list' using only Certificate Transparency logs."
     echo
 }
 
