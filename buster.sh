@@ -166,7 +166,7 @@ BUSTER() {
 }
 
 WAP() {
-    echo
+    echo "    |"
 
     # HTTP headers
     grep -iE 'Server:|X-Powered-By:|X-Generator|Set-Cookie:|CF-Ray:|X-Turbo-Charged-By:|Via:' "$TMP_HEADERS" | uniq | sed 's/^/    + /'
