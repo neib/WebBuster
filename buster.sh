@@ -72,7 +72,8 @@ CTL() {
         echo "  $subdomain"
     done
     echo
-    echo -e "[!] Now checking which subdomains are up....\n"
+    echo " Now checking which subdomains are up...."
+    echo -e "[!] Requesting in progress...\n"
 
     # Checking which subdomains are up
     DISCOVERED=0
@@ -89,7 +90,7 @@ CTL() {
     else
         # Clear the last line if the HTTP code is not good
         echo -e "\033[2K\r"
-        echo -e "[!] End of Certificate Transparency Logs.\n"
+        echo -e "[+] End of Certificate Transparency Logs with $DISCOVERED item(s) found.\n"
     fi
 }
 
@@ -156,13 +157,13 @@ BUSTER() {
         # DNS name resolution for subdomain enumeration
         IPADDR=""
         if [[ "$MODE" == "sub" ]]; then
-            IPADDR=$(dig $SUBDOMAIN +short)
+            IPADDR="($(dig $SUBDOMAIN +short))"
         fi
         # Show result
-        echo "  $TARGET [$CODE] $IPADDR"
+        echo "[+] $TARGET [$CODE] $IPADDR"
 
         if [[ -v FINAL_LOCATION ]]; then
-            if [[ $URL != $FINAL_LOCATION ]]; then
+            if [[ $TARGET != $FINAL_LOCATION ]]; then
                 echo "[!] You have been redirected to: $FINAL_LOCATION"
             fi
         fi
@@ -523,9 +524,8 @@ fi
 if [[ $NOCHECK != 1 ]]; then
     TMP_HTML=$(mktemp)
     TMP_HEADERS=$(mktemp)
-    IPADDR=$(dig $domain +short)
 
-    echo "Checking that the target is reachable... ($IPADDR)"
+    echo " Checking that the target is reachable..."
     if [[ $NOCERT == 1 ]]; then
         if [[ $FOLLOW == 1 ]]; then
             CODE_AND_LOCATION=$(curl -k -A "$USER_AGENT" -s -L -D "$TMP_HEADERS" -o "$TMP_HTML" -w "%{http_code} %{url_effective}" --max-time 10 $URL)
@@ -548,9 +548,12 @@ if [[ $NOCHECK != 1 ]]; then
         fi
     fi
     if [[ "$CHECK_CODE" == "000" ]]; then
-        echo -e "Error : The provided URL seems to be down. Try ‘--ignore-cert’ option\n"
+        echo -e "\nError : The provided URL seems to be down. Try ‘--ignore-cert’ option\n"
         exit 1
     fi
+
+    IPADDR=$(dig $domain +short)
+    echo "[+] $URL is up [$CHECK_CODE] ($IPADDR)"
 
     if [[ -v FINAL_LOCATION ]]; then
         if [[ $URL != $FINAL_LOCATION ]]; then
@@ -624,6 +627,6 @@ if [[ $DISCOVERED == 0 ]]; then
 else
     # Clear the last line if the HTTP code is not good
     echo -e "\033[2K\r"
-    echo -e "[!] End of dictionary enumeration with $DISCOVERED item(s) found.\n"
+    echo -e "[+] End of dictionary enumeration with $DISCOVERED item(s) found.\n"
     echo -e "The program terminated successfully."
 fi
