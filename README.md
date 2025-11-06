@@ -1,5 +1,5 @@
 # Web Buster
-A Web search tool for subdomains, directories, and files for a given URL.</br>
+A Web search tool for subdomains, directories, files, and background information for a given URL.</br>
 ## Requirements
 - curl : command-line tool for transferring data using URL syntax</br>
 - bc : bc GNU arbitrary precision calculator language</br>
