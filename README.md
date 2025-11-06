@@ -7,7 +7,7 @@ A Web search tool for subdomains, directories, files, and background information
 
 `apt install curl bc jq`</br>
 ## Usage
-./buster.sh -m &lt;mode&gt; -u &lt;URL&gt; -w &lt;wordlist&gt; [--ignore-cert] [-z &lt;milliseconds&gt;] [--no-check] [[--no-slash]] [-v]</br>
+./buster.sh -m &lt;mode&gt; -u &lt;URL&gt; -w &lt;wordlist&gt; [--ignore-cert] [-z <milliseconds>] [--no-check] [[--no-crt]] [[--no-slash]] [-f] [-v]</br>
 ## Example
 ./buster.sh -m sub -u https://example.com</br>
 ./buster.sh -m dir -u https://example.com/ -w directories.list</br>
