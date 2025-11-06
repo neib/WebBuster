@@ -9,7 +9,10 @@ A Web search tool for subdomains, directories, and files for a given URL.</br>
 ## Usage
 ./buster.sh -m &lt;mode&gt; -u &lt;URL&gt; -w &lt;wordlist&gt; [--ignore-cert] [-z &lt;milliseconds&gt;] [--no-check] [[--no-slash]] [-v]</br>
 ## Example
-./buster.sh -m sub -u https://example.com -w subdomains.list</br>
+./buster.sh -m sub -u https://example.com</br>
+./buster.sh -m dir -u https://example.com/ -w directories.list</br>
+./buster.sh -m file -u https://example.com/dir/ -w files.list</br>
+./buster.sh -m wap -u https://example.com</br>
 </br>
 ## Help
 <b>Arguments:</b></br>
