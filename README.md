@@ -16,19 +16,24 @@ A Web search tool for subdomains, directories, files, and background information
 </br>
 ## Help
 <b>Arguments:</b></br>
-&nbsp;&nbsp;-h, --help                                  Print this help.</br>
-&nbsp;&nbsp;-m &lt;mode&gt;, --mode &lt;mode&gt;                    Specify what to search for. The mode can be : sub (Subdomain discovery), dir (Directory discovery), file (File discovery), wap (Background information).</br>
-&nbsp;&nbsp;-u &lt;url&gt;, --url &lt;url&gt;                       Specify a target.</br>
-&nbsp;&nbsp;-w &lt;wordlist&gt;, --wordlist &lt;wordlist&gt;        Specify a dictionnary to use Optional for Subdomain discovery) (Do not use with Background information).</br>
+&nbsp;&nbsp;<b>-h, --help</b>&nbsp;&nbsp;                                  <i>Print this help.</i></br>
+&nbsp;&nbsp;<b>-m, --mode &lt;mode&gt;</b>&nbsp;&nbsp;                    <i>Specify what to search for. The mode can be : sub (Subdomain discovery), dir (Directory discovery), file (File discovery), wap (Background information).</i></br>
+&nbsp;&nbsp;<b>-u, --url &lt;url&gt;</b>&nbsp;&nbsp;                       <i>Specify a target.</i></br>
+&nbsp;&nbsp;<b>-w, --wordlist &lt;wordlist&gt;</b>&nbsp;&nbsp;        <i>Specify a dictionnary to use Optional for Subdomain discovery) (Do not use with Background information).</i></br>
 </br>
 <b>Optional:</b></br>
-&nbsp;&nbsp;-i, --ignore-cert                               Perform 'insecure' SSL connection.</br>
-&nbsp;&nbsp;-z &lt;milliseconds&gt;, --timer &lt;milliseconds&gt;   Waiting between requests.</br>
-&nbsp;&nbsp;-nc, --no-check                                  Do not attempt to contact the site initially.</br>
-&nbsp;&nbsp;-f, --follow                                Follow redirects.</br>
-&nbsp;&nbsp;-v, --verbose                               Verbose mode.</br>
-&nbsp;&nbsp;-nC, --no-crt                                    Do not check information from crt.sh|Certificate Search (Subdomain discovery only).</br>
-&nbsp;&nbsp;-ns, --no-slash                                  Do not add a final '/' to the directory name (Directory discovery only).</br>
+&nbsp;&nbsp;<b>-i, --ignore-cert</b>&nbsp;&nbsp;                               <i>Perform 'insecure' SSL connection.</i></br>
+&nbsp;&nbsp;<b>-z, --timer &lt;milliseconds&gt;</b>&nbsp;&nbsp;   <i>Waiting between requests.</i></br>
+&nbsp;&nbsp;<b>-nc, --no-check</b>&nbsp;&nbsp;                                  <i>Do not attempt to contact the site initially.</i></br>
+&nbsp;&nbsp;<b>-f, --follow</b>&nbsp;&nbsp;                                <i>Follow redirects.</i></br>
+&nbsp;&nbsp;<b>-p, --proxy &lt;[protocol://]host[:port]&gt;</b>&nbsp;&nbsp;      <i>Use this proxy.</i></br>
+&nbsp;&nbsp;<b>-A, --user-agent '&lt;user-agent&gt;'</b>&nbsp;&nbsp;             <i>Custom User Agent.</i></br>
+&nbsp;&nbsp;<b>-v, --verbose</b>&nbsp;&nbsp;                               <i>Verbose mode.</i></br>
+&nbsp;&nbsp;<b>-nC, --no-crt</b>&nbsp;&nbsp;                                    <i>Do not check information from crt.sh|Certificate Search (Subdomain discovery only).</i></br>
+&nbsp;&nbsp;<b>-ns, --no-slash</b>&nbsp;&nbsp;                                  <i>Do not add a final '/' to the directory name (Directory discovery only).</i></br>
+&nbsp;&nbsp;<b>-r, --recursive</b>&nbsp;&nbsp;                             <i>Recursive search (Subdomain and Directory discovery only).</i></br>
+&nbsp;&nbsp;<b>-P, --max-parallel &lt;max-parallel&gt;</b>&nbsp;&nbsp;           <i>Multiprocessing (Do not use with Background information).</i></br>
+&nbsp;&nbsp;<b>-I, --inhaler</b>&nbsp;&nbsp;                               <i>Additional search for links (Background information only)</i></br>
 </br>
 <b>Examples:</b></br>
 &nbsp;&nbsp;<i>./buster.sh -m sub -u http://domain.com -w subdomains.list</i></br>
