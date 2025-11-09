@@ -147,7 +147,7 @@ BUSTER() {
                 CODE=$(curl $CURLPROXY -k -A "$USER_AGENT" -s -o /dev/null -w "%{http_code}" $TARGET)
             fi
         fi
-    # Take care to security certificates
+    # Take care to security certificates (NOCERT=0)
     else
         # Activate wap mode
         if [[ "$MODE" == "sub" ]]; then
@@ -867,8 +867,7 @@ while IFS= read -r WHAT; do
     if [[ "$MODE" == "sub" ]]; then
         TARGET="$protocol$WHAT.$domain"
         CONTROL_CODE="000"
-        #SUBDOMAIN="$WHAT.$domain"
-        domain="$WHAT.$domain"
+        SUBDOMAIN="$WHAT.$domain"
         LOOT="subdomains"
     elif [[ "$MODE" == "file" ]]; then
         TARGET="$URL$WHAT"
