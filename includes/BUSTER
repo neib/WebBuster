@@ -1,0 +1,152 @@
+#=== Requester ===
+BUSTER() {
+    # Temp files for curl content
+    local TMP_HTML=$(mktemp)
+    local TMP_HEADERS=$(mktemp)
+    echo "$TMP_HTML" >> "$TEMP_FILES"
+    echo "$TMP_HEADERS" >> "$TEMP_FILES"
+
+    local counter
+
+    # Activate scav mode
+    if [[ "$MODE" == "sub" ]]; then
+        CODE_AND_LOCATION=$(curl "${CURLOPTIONS[@]}" -D "$TMP_HEADERS" -o "$TMP_HTML" -w "%{http_code} %{url_effective}" --max-time 10 $TARGET)
+    # No scav
+    else
+        CODE_AND_LOCATION=$(curl "${CURLOPTIONS[@]}" -D "$TMP_HEADERS" -o /dev/null -w "%{http_code} %{url_effective}" --max-time 10 $TARGET)
+    fi
+    CODE=$(echo "$CODE_AND_LOCATION" | awk '{print $1}')
+    FINAL_LOCATION=$(echo "$CODE_AND_LOCATION" | awk '{print $2}')
+
+
+    # Check the HTTP code and display discoveries
+    if [[ "$CODE" != "$CONTROL_CODE" ]]; then
+        IPADDR=""
+        # DNS name resolution for subdomain enumeration
+        if [[ "$MODE" == "sub" ]]; then
+            IPADDR="($(dig $SUBDOMAIN +short))"
+            #IPADDR=$(curl $CURLPROXY -s "https://cloudflare-dns.com/dns-query?name=$SUBDOMAIN&type=A" -H "accept: application/dns-json" | jq -r '.Answer[0].data')
+        fi
+        # Show result
+        echo -e "${BLUE}[+]${NC} $TARGET ${GREEN}[$CODE]${NC} $IPADDR"
+
+        if [[ -v FINAL_LOCATION ]]; then
+            [[ $TARGET != $FINAL_LOCATION ]] && echo -e "${RED}[!]${NC} You have been redirected to: $FINAL_LOCATION"
+        fi
+
+        # If sub mode do passive SCAV
+        [[ "$MODE" == "sub" ]] && SCAV
+
+        # Add item to counter
+        counter=$(cat "$TEMP_COUNTER")
+        ((counter++))
+        echo "$counter" > "$TEMP_COUNTER"
+
+        # List new potential targets
+        if [[ $RECURSIVE == 1 ]]; then
+            if [[ $FOLLOW == 1 ]]; then
+                if [[ $TARGET != $FINAL_LOCATION ]]; then
+                    echo "$FINAL_LOCATION" >> "$EFFECTIVE_LOOT"
+                else
+                    echo "$TARGET" >> "$EFFECTIVE_LOOT"
+                fi
+            else
+                echo "$TARGET" >> "$EFFECTIVE_LOOT"
+            fi
+        fi
+
+    # Verbose
+    elif [[ $VERBOSE == 1 ]]; then
+        # Clear the last line if the HTTP code is not good
+        echo -ne "\033[2K\r"
+        echo -ne "Looking: $TARGET\r"
+    fi
+
+    # Sleep
+    [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
+
+    # Remove temp files
+    rm -f "$TMP_HTML" "$TMP_HEADERS"
+}
+
+#=== Recursive call ===
+RECBUSTER() {
+    # Add item to counter
+    ((RECULEV++))
+
+    # Return if no more items
+    if [ ! -s "$OLD_LOOT" ]; then
+        echo -e "\033[2K\r"
+        echo -e " No items found."
+        return
+    else
+        echo -e "\033[2K\r"
+        echo " Recursion level: $RECULEV"
+        echo -e "[!] Going deeper..."
+    fi
+
+    # Reinitialize new items list
+    rm -f "$EFFECTIVE_LOOT"
+    EFFECTIVE_LOOT=$(mktemp)
+    echo "$EFFECTIVE_LOOT" >> "$TEMP_FILES"
+
+    # Prepare new targets
+    while IFS= read -r WHAT; do
+        while IFS= read -r TARGET; do
+            if [[ "$MODE" == "sub" ]]; then
+                if [[ $TARGET =~ ^(https?://)([^/]+) ]]; then
+                    protocol=${BASH_REMATCH[1]}
+                    domain=${BASH_REMATCH[2]}
+                    TARGET="$protocol$WHAT.$domain"
+                    SUBDOMAIN="$WHAT.$domain"
+                fi
+            else
+                if [[ $NOSLASH == 1 ]]; then
+                    TARGET="$TARGET$WHAT"
+                else
+                    TARGET="$TARGET$WHAT/"
+                fi
+
+            fi
+
+            # Multiprocessing
+            if [[ ! -z $MAXPARALLEL ]]; then
+                BUSTER &
+
+                pids+=($!)
+                # Limit the number of concurrent jobs
+                while (( ${#pids[@]} >= MAXPARALLEL )); do
+                    for i in "${!pids[@]}"; do
+                        if ! kill -0 "${pids[i]}" 2>/dev/null; then
+                            unset 'pids[i]'
+                        fi
+                    done
+                    # Reindex table
+                    pids=("${pids[@]}")
+                    sleep 0.1
+                done
+            # Non-parallel execution
+            else
+                BUSTER
+            fi
+        done < "$OLD_LOOT"
+    done < "$WORDS"
+
+    # Wait for the remaining jobs
+    if [[ ! -z $MAXPARALLEL ]]; then
+        wait
+        pids=()
+    fi
+
+    # Check for new items
+    mapfile -t old < "$OLD_LOOT"
+    mapfile -t effective < "$EFFECTIVE_LOOT"
+    old_sorted=($(printf "%s\n" "${old[@]}" | sort -u))
+    effective_sorted=($(printf "%s\n" "${effective[@]}" | sort -u))
+
+    # If new items make a loop
+    if [[ "${old_sorted[*]}" != "${effective_sorted[*]}" ]]; then
+        cp "$EFFECTIVE_LOOT" "$OLD_LOOT"
+        RECBUSTER
+    fi
+}
