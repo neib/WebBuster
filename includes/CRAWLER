@@ -1,0 +1,282 @@
+#=== Normalize directoy path ===
+normalize_path() {
+  local path="$1"
+  # Keep root path
+  if [[ "$path" == "/" ]]; then
+      echo "/"
+      return
+  fi
+  # Normalize
+  local -a parts result
+  IFS='/' read -ra parts <<< "$path"
+  for part in "${parts[@]}"; do
+      case "$part" in
+          ''|'.') continue ;;
+          '..') [[ ${#result[@]} -gt 0 ]] && unset 'result[${#result[@]}-1]' ;;
+          *) result+=("$part") ;;
+      esac
+  done
+  echo "${result[*]}" | tr ' ' '/'
+}
+
+#=== Crawler ===
+CRAWL() {
+    # Local counter
+    local crawl_counter
+
+    crawl_counter=$(cat "$TEMP_COUNTER")
+    ((crawl_counter++))
+    echo "$crawl_counter" > "$TEMP_COUNTER"
+
+    echo -ne "\033[2K\r"
+    echo -ne "CRAWL Level: $crawl_counter\r"
+
+    # Verbose
+    if [[ $VERBOSE == 1 ]]; then
+        # Clear the last line if the HTTP code is not good
+        echo -ne "\033[2K\r"
+        echo -ne "CRAWL Level: $crawl_counter | Looking: $1\r"
+    fi
+
+    # Temp html
+    local tmp_html=$(mktemp)
+    echo "$tmp_html" >> "$TEMP_FILES"
+
+    # Sleep
+    [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
+
+    # Request target
+    code_and_loc=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code} %{url_effective}" --max-time 10 "$1")
+    code=$(echo "$code_and_loc" | awk '{print $1}')
+    loc=$(echo "$code_and_loc" | awk '{print $2}')
+
+    # Don't waste time
+    [[ "$code" == "000" && "$code" == "404" ]] && return
+
+    # Know where we are
+    if [[ "$loc" =~ ^https?://[^/]+(/.*) ]]; then
+        current_path="${BASH_REMATCH[1]}"
+    else
+        current_path="/"
+    fi
+    current_dir=$(dirname "$current_path")
+
+
+    #=== Grab all URLs ===
+    ALL_LINKS=()
+    # Forms actions
+    while read -r action; do
+        ALL_LINKS+=("$action")
+    done < <(grep -oiP "(?i)<form\s+[^>]*action=(['\"])\K.*?(?=\1)" "$tmp_html" | sort -u)
+    # Scripts src
+    while read -r src; do
+        ALL_LINKS+=("$src")
+    done < <(grep -oiP "(?i)<script\s+[^>]*src=(['\"])\K.*?(?=\1)" "$tmp_html" | sort -u )
+    # Iframe src
+    while read -r src; do
+        ALL_LINKS+=("$src")
+    done < <(grep -oiP "(?i)<iframe\s+[^>]*src=(['\"])\K.*?(?=\1)" "$tmp_html" | sort -u)
+    # A href
+    while read -r href; do
+        ALL_LINKS+=("$href")
+    done < <(grep -oiP "(?i)<a\s+[^>]*href=(['\"])\K.*?(?=\1)" "$tmp_html" | sort -u)
+    # Link href
+    while read -r href; do
+        ALL_LINKS+=("$href")
+    done < <(grep -oiP "(?i)<link\s+[^>]*href=(['\"])\K.*?(?=\1)" "$tmp_html" | sort -u)
+
+    # Remove temp html file
+    rm -f "$tmp_html"
+
+
+    #=== Sort internal links ===
+    INTERNAL_LINKS=()
+    # Browse entries
+    for element in "${ALL_LINKS[@]}"; do
+        # Check http or https
+        if [[ "$element" =~ ^(https?:)?//([^/]+) ]]; then
+            # Extract domain and compare with target domain
+            check_domain=${BASH_REMATCH[2]}
+            if [[ "$check_domain" == "$domain" ]]; then
+                if [[ $element =~ ^([^?]+) ]]; then
+                    clean_path="${BASH_REMATCH[1]}"
+                fi
+
+                # Check if this entry has already been processed.
+                if ! grep -Fxq "$clean_path" "$TEMP_SITEMAP"; then
+                    # Add to internal links and index it
+                    INTERNAL_LINKS+=("$clean_path")
+                    echo "$clean_path" >> "$TEMP_SITEMAP"
+                fi
+            fi
+
+        # No protocol
+        elif [[ ! "$element" =~ ^(https?:)?// ]]; then
+            # If full path link
+            if [[ "$element" =~ ^/ ]]; then
+                full_path="${element}"
+            # If relative link
+            else
+                if [[ $current_path =~ /$ ]]; then
+                    full_path="${current_path}${element}"
+                else
+                    full_path="${current_dir}/${element}"
+                fi
+            fi
+
+            # Capture the sequence up to the second ‘?’ encountered --> Avoid accumulating dynamic link parameters with Multiple ‘?’
+            if [[ "$full_path" =~ ^([^?]*(\?[^?]*){0,1}) ]]; then
+                clean_path="${BASH_REMATCH[1]}"
+            fi
+
+            # Normalize link
+            normalized_path=$(normalize_path "$clean_path")
+            new_target="${crawl_target}/${normalized_path}"
+
+            # Check for duplicates
+            if ! grep -Fxq "$new_target" "$TEMP_SITEMAP"; then
+                # Add to internal links and index it
+                INTERNAL_LINKS+=("$new_target")
+                echo "$new_target" >> "$TEMP_SITEMAP"
+            fi
+        fi
+    done
+
+
+    #=== Recursive crawl ===
+    for il in "${INTERNAL_LINKS[@]}"; do
+        # Multiprocessing
+        if [[ ! -z $MAXPARALLEL ]]; then
+            CRAWL "$il" &
+
+            pids+=($!)
+            # Limit the number of concurrent jobs
+            while (( ${#pids[@]} >= MAXPARALLEL )); do
+                for i in "${!pids[@]}"; do
+                    if ! kill -0 "${pids[i]}" 2>/dev/null; then
+                        unset 'pids[i]'
+                    fi
+                done
+                # Reindex table
+                pids=("${pids[@]}")
+                sleep 0.1
+            done
+        # Non-parallel execution
+        else
+            CRAWL "$il"
+        fi
+    done
+
+    # Wait for the remaining jobs
+    if [[ ! -z $MAXPARALLEL ]]; then
+        wait
+        pids=()
+    fi
+}
+
+#=== Sort files and directories ===
+SORTCRAWL() {
+    DIR_ENDPOINTS=()
+    FILE_ENDPOINTS=()
+
+    # Browse internal links and sort files and directories
+    while IFS= read -r internal; do
+        # Only keep the path
+        if [[ "$internal" =~ ^https?://[^/]+(/.*) ]]; then
+            path=${BASH_REMATCH[1]}
+            if [[ "$path" == "" || "$path" == "//" ]]; then
+                path="/"
+            fi
+        else
+            path="$internal"
+        fi
+
+        # Split
+        IFS='/' read -ra parts <<< "$path"
+
+         # Determines whether it is a file by checking whether the string does not end with ‘/’
+        if [[ "$path" != */ && -n "$path" ]]; then
+            FILE_ENDPOINTS+=("$path")
+            unset 'parts[-1]'
+        fi
+
+        # Again keep root path
+        if [[ "$path" == "/" ]]; then
+            DIR_ENDPOINTS+=("/")
+        else
+            # Add all paths as independent subdirectory
+            prefix=""
+            for part in "${parts[@]}"; do
+                if [[ -n "$part" ]]; then
+                    prefix="$prefix/$part"
+                    DIR_ENDPOINTS+=("$prefix/")
+                fi
+            done
+        fi
+    done < "$TEMP_SITEMAP"
+
+    # Sort
+    mapfile -t sorted_unique_dir < <(printf "%s\n" "${DIR_ENDPOINTS[@]}" | sort -u)
+    mapfile -t sorted_unique_file < <(printf "%s\n" "${FILE_ENDPOINTS[@]}" | sort -u)
+
+    # Remove duplicates files for directories
+    filtered_files=()
+    for file in "${sorted_unique_file[@]}"; do
+        if ! printf "%s\n" "${sorted_unique_dir[@]}" | grep -qx "${file}/"; then
+            filtered_files+=("$file")
+        fi
+    done
+
+    # Check indexable directories
+    IDX_DIR=()
+    NOT_IDX_DIR=()
+    ERRORS_PATH=()
+
+    local tmp_html=$(mktemp)
+    echo "$tmp_html" >> "$TEMP_FILES"
+
+    for dir in "${sorted_unique_dir[@]}"; do
+        # New request to check "Index of" mention --> (To be included in the first request)
+        dir_status=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code}" "${crawl_target}${dir}")
+
+        if [[ "$dir_status" == "200" ]]; then
+            # Indexable or not
+            contents=$(cat "$tmp_html" | grep -i 'Index of')
+            if [[ -n "$contents" ]]; then
+                IDX_DIR+=("$dir")
+            else
+                NOT_IDX_DIR+=("$dir")
+            fi
+        else
+            # Keep track of errors
+            ERRORS_PATH+=("$dir : [$dir_status]")
+        fi
+        # Sleep
+        [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
+    done
+
+    rm -f "$tmp_html"
+
+
+    # Display
+    echo
+    echo
+    echo -e "${BLUE}[+]${NC} Errors:"
+    printf "  ${GREEN}>${NC} %s\n" "${ERRORS_PATH[@]}"
+
+    #echo
+    #echo "Directories:"
+    #printf "  ${GREEN}>${NC} %s\n" "${sorted_unique_dir[@]}"
+
+    echo
+    echo -e "${BLUE}[+]${NC} Indexable directories:"
+    printf "  ${GREEN}>${NC} %s\n" "${IDX_DIR[@]}"
+
+    echo
+    echo -e "${BLUE}[+]${NC} Other directories:"
+    printf "  ${GREEN}>${NC} %s\n" "${NOT_IDX_DIR[@]}"
+
+    echo
+    echo -e "${BLUE}[+]${NC} Files:"
+    printf "  ${GREEN}>${NC} %s\n" "${filtered_files[@]}"
+}
