@@ -1,4 +1,4 @@
-# Web Buster
+# WebBuster
 A Web search tool for subdomains, directories, files, and background information for a given URL.</br>
 ## Requirements
 - <b>curl</b> : command-line tool for transferring data using URL syntax</br>
