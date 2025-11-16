@@ -1,0 +1,89 @@
+#JOOMLA() {
+    #=== Search for version ===
+    echo "    + Search for Joomla version"
+    version_meta=$(grep -i '<meta name="generator"' "$TMP_HTML" | grep -i 'joomla' | grep -Eo 'content="[^"]+"' | head -n1 | cut -d\" -f2)
+
+    if [[ "$version_meta" == *Joomla* ]]; then
+        echo "    + CMS version: $version_meta"
+    else
+        # Attempting to read joomla.xml in /administrator/manifests/files/
+        joomla_xml=$(curl "${CURLOPTIONS[@]}" "${BASE_URL}/administrator/manifests/files/joomla.xml" | head -n 20)
+        version_joomla_xml=$(echo "$joomla_xml" | grep -oP '(?<=<version>)[^<]+' | head -n1)
+
+        if [[ -n "$version_joomla_xml" ]]; then
+            echo "    + CMS version: Joomla $version_joomla_xml"
+        else
+            # Attempting to read the XML language file (e.g., /language/en-GB/en-GB.xml)
+            lang_xml=$(curl "${CURLOPTIONS[@]}" "${BASE_URL}/language/en-GB/en-GB.xml" | head -n 20)
+            version_lang_xml=$(echo "$lang_xml" | grep -oP '(?<=<version>)[^<]+' | head -n1)
+
+            if [[ -n "$version_lang_xml" ]]; then
+                echo "    + CMS version: Joomla $version_lang_xml"
+            else
+                echo "    - Version not detected"
+            fi
+        fi
+    fi
+
+    #=== Public information API ===
+    echo "    + Search for Public information API"
+    config_resp=$(curl "${CURLOPTIONS[@]}" "${BASE_URL}/api/index.php/v1/config/application?public=true")
+    if echo "$config_resp" | grep -q "sitename"; then
+        echo "        + Public information API detected :"
+        echo "          > $config_resp" | head -n 20 | sed 's/^/          /'
+    fi
+
+    #=== Exposed REST API ===
+    echo "    + Search for exposed APIs/REST services"
+    declare -a endpoints=(
+        "/api/index.php/v1/config/application"
+        "/api/index.php/v1/config/"
+        "/api/index.php/v1/menus/"
+        "/api/index.php/v1/users/"
+        "/api/index.php/v1/users/1"
+        "/api/index.php/v1/content"
+    )
+    for endpoint in "${endpoints[@]}"; do
+        rest_code=$(curl "${CURLOPTIONS[@]}" -o /dev/null -w "%{http_code}" "${BASE_URL}${endpoint}")
+        if [[ "$rest_code" == "200" ]]; then
+            echo "          + REST endpoint $endpoint [$rest_code]"
+        fi
+    done
+
+    #=== Common paths ===
+    declare -a CMS_PATHS=(
+        "/language/en-GB/en-GB.xml"
+        "/robots.txt"
+        "/README.txt"
+        "/fpa-en.php"
+    )
+    #=== Sensitive files ===
+    declare -a SENSITIVE_FILES=(
+        "/configuration.php.bak"
+    )
+    #=== Admin panel ===
+    declare -a ADMIN_PATHS=(
+        "/administrator/"
+        "/administrator/index.php"
+    )
+    #=== Directories ===
+    declare -a DIRS=(
+        "/components/"
+        "/modules/"
+        "/templates/"
+        "/media/"
+    )
+    #=== Known RCE ===
+    declare -a RCE_FILES=(
+        "/installation/index.php"                       # Installation leftover risk (Joomla < 3.x)
+        "/administrator/components/com_admin/admin.ajax.php"   # Com.Admin AJAX vuln
+        "/plugins/editors/tinymce/jscripts/tiny_mce/plugins/tinybrowser/tinybrowser.php" # TinyMCE file upload vuln CVE-2009-3555
+        "/plugins/editors/tinymce/jscripts/tiny_mce/plugins/filemanager/download.php"    # FileManager vuln
+        "/components/com_jce/plugins/filemanager/upload.php"         # JCE File Manager vuln
+        "/components/com_jce/plugins/filemanager/connectors/php/connector.php" # JCE PHP connector vuln
+        "/components/com_jce/controllers/filemanager.php"             # JCE filemanager vuln
+        "/components/com_media/helpers/file.php"                      # Media helper possible vuln
+        "/templates/system/timthumb.php"                              # Timthumb in templates
+        "/components/com_content/helpers/view.html.php"               # RCE possible dans certaines versions
+    )
+#}
