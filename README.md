@@ -7,48 +7,147 @@ A Web search tool for subdomains, directories, files, and background information
 - <b>searchsploit</b> : searching for exploits and vulnerabilities in the local Exploit-DB database</br>
 <!-- `apt install curl bc jq exploitdb`</br> -->
 ## Usage
-`./buster.sh -m &lt;mode&gt; -u &lt;URL&gt; [-w &lt;wordlist&gt; [-i] [-z <milliseconds>] [-nc] [-f] [-p] [-A] [-v] [[-nC]] [[-ns]] [[-r]] [-P] [[-I]]]`</br>
-</br>
-<b>Examples</b></br>
-`./buster.sh -m sub -u https://example.com`</br>
-`./buster.sh -m dir -u https://example.com/ -w directories.list`</br>
-`./buster.sh -m file -u https://example.com/dir/ -w files.list`</br>
-`./buster.sh -m wap -u https://example.com`</br>
-</br>
+```
+./buster -m <mode> -u <URL> [options]
+```
+## Examples
+```
+./buster -m sub -u https://example.com
+./buster -m dir -u https://example.com/ -w directories.list
+./buster -m file -u https://example.com/dir/ -w files.list
+./buster -m scav -u https://example.com -a
+./buster -m crawl -u https://example.com -z 200
+```
 ## Help
-<b>Arguments:</b></br>
-&nbsp;&nbsp;<b>-h, --help</b>&nbsp;&nbsp;                                  <i>Print this help.</i></br>
-&nbsp;&nbsp;<b>-m, --mode &lt;mode&gt;</b>&nbsp;&nbsp;                    <i>Specify what to search for. The mode can be : sub (Subdomain discovery), dir (Directory discovery), file (File discovery), wap (Background information).</i></br>
-&nbsp;&nbsp;<b>-u, --url &lt;url&gt;</b>&nbsp;&nbsp;                       <i>Specify a target.</i></br>
-&nbsp;&nbsp;<b>-w, --wordlist &lt;wordlist&gt;</b>&nbsp;&nbsp;        <i>Specify a dictionnary to use Optional for Subdomain discovery) (Do not use with Background information).</i></br>
-</br>
-<b>Optional:</b></br>
-&nbsp;&nbsp;<b>-i, --ignore-cert</b>&nbsp;&nbsp;                               <i>Perform 'insecure' SSL connection.</i></br>
-&nbsp;&nbsp;<b>-z, --timer &lt;milliseconds&gt;</b>&nbsp;&nbsp;   <i>Waiting between requests.</i></br>
-&nbsp;&nbsp;<b>-nc, --no-check</b>&nbsp;&nbsp;                                  <i>Do not attempt to contact the site initially.</i></br>
-&nbsp;&nbsp;<b>-f, --follow</b>&nbsp;&nbsp;                                <i>Follow redirects.</i></br>
-&nbsp;&nbsp;<b>-p, --proxy &lt;[protocol://]host[:port]&gt;</b>&nbsp;&nbsp;      <i>Use this proxy.</i></br>
-&nbsp;&nbsp;<b>-A, --user-agent '&lt;user-agent&gt;'</b>&nbsp;&nbsp;             <i>Custom User Agent.</i></br>
-&nbsp;&nbsp;<b>-v, --verbose</b>&nbsp;&nbsp;                               <i>Verbose mode.</i></br>
-&nbsp;&nbsp;<b>-nC, --no-crt</b>&nbsp;&nbsp;                                    <i>Do not check information from crt.sh|Certificate Search (Subdomain discovery only).</i></br>
-&nbsp;&nbsp;<b>-ns, --no-slash</b>&nbsp;&nbsp;                                  <i>Do not add a final '/' to the directory name (Directory discovery only).</i></br>
-&nbsp;&nbsp;<b>-r, --recursive</b>&nbsp;&nbsp;                             <i>Recursive search (Subdomain and Directory discovery only).</i></br>
-&nbsp;&nbsp;<b>-P, --max-parallel &lt;max-parallel&gt;</b>&nbsp;&nbsp;           <i>Multiprocessing (Do not use with Background information).</i></br>
-&nbsp;&nbsp;<b>-I, --inhaler</b>&nbsp;&nbsp;                               <i>Additional search for links (Background information only)</i></br>
-</br>
-<b>Examples:</b></br>
-&nbsp;&nbsp;<i>`./buster.sh -m sub -u http://domain.com -w subdomains.list`</i></br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* Subdomain discovery for 'http://domain.com' using the wordlist 'subdomains.list'.</br></br>
-&nbsp;&nbsp;<i>`./buster.sh --mode dir -u https://other.domain.com/somedire/ -w directories.list --ignore-cert`</i></br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* Directory discovery for 'https://other.domain.com/somedire/' using the wordlist 'directories.list' and ignoring secutity certificates.</br></br>
-&nbsp;&nbsp;<i>`./buster.sh -m file -u https://www.another.com/files -w files.list --ignore-cert -z 200`</i></br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* File discovery for 'https://www.another.com/files/' using the wordlist 'files.list' with a delay of 0.2s and ignoring secutity certificates.</br></br>
-&nbsp;&nbsp;<i>`./buster.sh -m dir -u https://againandagain.com/ -w directories.list --no-check --no-slash --verbose`</i></br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* Directory discovery for 'https://againandagain.com/' using the wordlist 'directories.list'. Does not check if the target is up, does not add a final '/' to the directory name and display the currently tested directory.</br></br>
-&nbsp;&nbsp;<i>`./buster.sh --mode sub -u https://againagainagain.com`</i></br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* Subdomain discovery for 'https://gainagainagain.com' using only Certificate Transparency logs.</br></br>
-&nbsp;&nbsp;<i>`./buster.sh --mode wap -u https://otherone.com -f`</i></br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* Background information for 'https://otherone.com' following redirects</br></br>
+```
+            __        __   _     ____            _                       
+---+++===[  \ \      / /__| |__ | __ ) _   _ ___| |_ ___ _ __            
+             \ \ /\ / / _ \ '_ \|  _ \| | | / __| __/ _ \ '__|           
+              \ V  V /  __/ |_) | |_) | |_| \__ \ ||  __/ |              
+               \_/\_/ \___|_.__/|____/ \__,_|___/\__\___|_|    ]===+++---
+
+      A Web search tool for subdomains, directories, files and background information.          
+
+
+
+  Usage: ./buster -m <mode> -u <URL> [options]
+
+Common arguments :
+  -h, --help                                                  Display this help
+  -m, --mode <mode>                                           Buster mode
+  -u, --url <URL>                                             Target URL
+
+Available modes :
+  sub    : Subdomain Buster           (Subdomain discovery)
+  dir    : Directory Buster           (Directory discovery)
+  file   : File Buster                (File discovery)
+  scav   : Background Buster          (Background discovery)
+  crawl  : Sitemap Buster             (Sitemap discovery)
+
+
+
+ * Sub mode (Subdomain discovery) :
+    This mode will retrieve the list of subdomains of the target based on Certificates Transparency Logs or by dictionary enumeration.
+
+  Required     : -u, --url <URL>                              Target URL
+
+  Optional     : -w, --wordlist <file>                        Dictionary to use
+                 -i, --ignore-cert                            'Insecure' SSL connection
+                 -z, --timer <millisecondes>                  Wait time between requests
+                 -nc, --no-check                              Do not test the site initially
+                 -p, --proxy <[protocol://]host[:port]>       Use proxy
+                 -c, --cookie <key=value[;key=value]>         Use cookies
+                 -A, --user-agent <user-agent>                Custom User Agent
+                 -v, --verbose                                Verbose mode
+                 -nC, --no-crt (use with --wordlist)          Do not check Certificate Transparency Logs (crt.sh)
+                 -f, --follow                                 Follow redirects
+                 -P, --max-parallel <max-parallel>            Multiprocessing
+                 -I, --inhaler                                Additional search for links
+
+  Exemple      : ./buster --mode sub --url https://example.com
+
+
+
+ * Dir mode (Directory discovery) :
+    This mode will attempt to list all directories and subdirectories of a target based on a dictionary enumeration.
+
+  Required     : -u, --url <URL>                              Target URL
+                 -w, --wordlist <file>                        Dictionary to use
+
+  Optional     : -i, --ignore-cert                            'Insecure' SSL connection
+                 -z, --timer <millisecondes>                  Wait time between requests
+                 -nc, --no-check                              Do not test the site initially
+                 -p, --proxy <[protocol://]host[:port]>       Use proxy
+                 -c, --cookie <key=value[;key=value]>         Use cookies
+                 -A, --user-agent <user-agent>                Custom User Agent
+                 -v, --verbose                                Verbose mode
+                 -f, --follow                                 Follow redirects
+                 -P, --max-parallel <max-parallel>            Multiprocessing
+                 -ns, --no-slash                              Do not add a final '/' to the directory name
+                 -r, --recursive                              Recursive search
+
+  Exemple      : ./buster --mode dir --url https://example.com --wordlist words.txt --verbose
+
+
+
+ * File mode (File discovery) :
+    This mode will attempt to list all files on a target based on a dictionary enumeration.
+
+  Required     : -u, --url <URL>                              Target URL
+                 -w, --wordlist <file>                        Dictionary to use
+
+  Optional     : -i, --ignore-cert                            'Insecure' SSL connection
+                 -z, --timer <millisecondes>                  Wait time between requests
+                 -nc, --no-check                              Do not test the site initially
+                 -p, --proxy <[protocol://]host[:port]>       Use proxy
+                 -c, --cookie <key=value[;key=value]>         Use cookies
+                 -A, --user-agent <user-agent>                Custom User Agent
+                 -v, --verbose                                Verbose mode
+                 -f, --follow                                 Follow redirects
+                 -P, --max-parallel <max-parallel>            Multiprocessing
+
+  Exemple      : ./buster --mode file --url https://example.com --wordlist words.txt -z 200
+
+
+
+ * Scav mode (Background information) :
+    This mode will attempt to understand the target's architecture.
+
+  Required     : -u, --url <URL>                              Target URL
+
+  Optional     : -i, --ignore-cert                            'Insecure' SSL connection
+                 -z, --timer <millisecondes>                  Wait time between requests
+                 -nc, --no-check                              Do not test the site initially
+                 -p, --proxy <[protocol://]host[:port]>       Use proxy
+                 -c, --cookie <key=value[;key=value]>         Use cookies
+                 -A, --user-agent <user-agent>                Custom User Agent
+                 -v, --verbose                                Verbose mode
+                 -f, --follow                                 Follow redirects
+                 -I, --inhaler                                Additional search for links
+                 -a, --agressive                              More aggressive, more requests
+
+  Exemple      : ./buster --mode scav --url https://example.com -a
+
+
+
+ * Crawl mode (Homemade sitemap) :
+    This mode will retrieve all internal links accessible from the given URL to build the target tree structure.
+
+  Required     : -u, --url <URL>                              Target URL
+
+  Optional     : -i, --ignore-cert                            'Insecure' SSL connection
+                 -z, --timer <millisecondes>                  Wait time between requests
+                 -nc, --no-check                              Do not test the site initially
+                 -p, --proxy <[protocol://]host[:port]>       Use proxy
+                 -c, --cookie <key=value[;key=value]>         Use cookies
+                 -A, --user-agent <user-agent>                Custom User Agent
+                 -v, --verbose                                Verbose mode
+                 -f, --follow                                 Follow redirects
+                 -P, --max-parallel <max-parallel>            Multiprocessing
+
+  Exemple      : ./buster --mode crawl --url https://example.com -f -i
+
+```
 ## Notes
 The subdomains module is partly inspired by this project: https://github.com/UnaPibaGeek/ctfr</br>
 It just look for Certificate Transparency Logs at: https://crt.sh/</br>
