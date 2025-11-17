@@ -149,6 +149,10 @@ Available modes :
 
 ```
 ## Notes
-The subdomains module is partly inspired by this project: https://github.com/UnaPibaGeek/ctfr</br>
-It just look for Certificate Transparency Logs at: https://crt.sh/</br>
-Of course, you can use a dictionary attack to combine with CTL for subdomains enumeration.</br>
+* Subdomain mode will check the Certificate Transparency Logs available at this address: https://crt.sh/
+* Files and Directory modes typically perform dictionary-based enumeration.
+* Scavenger mode will attempt to capture as much information as possible about a given target. By default, it will only perform one query, but it can be used more aggressively (many requests).
+* Crawler mode will attempt to reconstruct the tree structure based solely on what is accessible from the source page for a given target.
+</br>
+The subdomain mode is partly inspired by this project: https://github.com/UnaPibaGeek/ctfr</br>
+
