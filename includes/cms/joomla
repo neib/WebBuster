@@ -84,6 +84,6 @@
         "/components/com_jce/controllers/filemanager.php"             # JCE filemanager vuln
         "/components/com_media/helpers/file.php"                      # Media helper possible vuln
         "/templates/system/timthumb.php"                              # Timthumb in templates
-        "/components/com_content/helpers/view.html.php"               # RCE possible dans certaines versions
+        "/components/com_content/helpers/view.html.php"               # RCE possible in some versions
     )
 #}
