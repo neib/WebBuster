@@ -65,15 +65,15 @@
     )
     #=== Known RCE ===
     declare -a RCE_FILES=(
-        "/index.php/admin"                                   # chemin admin par défaut potentiellement vulnérable selon version
-        "/js/mage/adminhtml/backup.js"                       # scripts admin potentiellement vulnérables
-        "/js/mage/adminhtml/logger.js"                       # script vulnérable pouvant exposer des actions
-        "/downloader/index.php"                              # Composer/Installer legacy vulnérable
-        "/errors/processor.php"                              # Fichier d’erreurs vulnérable à RCE dans certaines versions
-        "/dev/tests/functional/index.php"                    # Scripts de test parfois accessibles publiquement
-        "/lib/internal/Magento/Framework/App/FrontController.php" # Core vulnérable dans versions anciennes
-        "/app/code/Magento/Adminhtml/Controller/Backup.php" # Exécution fichier backup vulnérable
-        "/lib/internal/Magento/Framework/DB/Adapter/Pdo/Mysql.php" # Possibilité RCE en injection si accessible
-        "/phpinfo.php"                                       # Souvent uploadé par erreur et dangereux
+        "/index.php/admin"                                   # Default admin path potentially vulnerable depending on version
+        "/js/mage/adminhtml/backup.js"                       # Admin scripts potentially vulnerable
+        "/js/mage/adminhtml/logger.js"                       # Vulnerable script that may expose actions
+        "/downloader/index.php"                              # Vulnerable legacy Composer/Installer
+        "/errors/processor.php"                              # Error file vulnerable to RCE in certain versions
+        "/dev/tests/functional/index.php"                    # Test scripts sometimes publicly accessible
+        "/lib/internal/Magento/Framework/App/FrontController.php" # Core vulnerable in older versions
+        "/app/code/Magento/Adminhtml/Controller/Backup.php" # Vulnerable backup file execution
+        "/lib/internal/Magento/Framework/DB/Adapter/Pdo/Mysql.php" # RCE possible in injection if accessible
+        "/phpinfo.php"                                       # Often uploaded by mistake and dangerous
     )
 #}
