@@ -1,11 +1,12 @@
 # WebBuster
 A Web search tool for subdomains, directories, files, and background information for a given URL.</br>
 ## Requirements
+- <b>bash</b> : GNU Bourne Again SHell (command interpreter derived from that of S. Bourne)
 - <b>curl</b> : command-line tool for transferring data using URL syntax</br>
 - <b>bc</b> : bc GNU arbitrary precision calculator language</br>
 - <b>jq</b> : lightweight and flexible command-line JSON processor</br>
 ```
-apt install curl bc jq
+apt install bash curl bc jq
 ```
 - <b>searchsploit</b> : searching for exploits and vulnerabilities in the local Exploit-DB database</br>
 https://gitlab.com/exploit-database/exploitdb</br>
