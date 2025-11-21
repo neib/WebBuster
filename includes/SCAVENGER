@@ -4,7 +4,6 @@ SCAV() {
     echo -e "${GREEN}SCAVENGER:${NC}"
     BASE_URL="$protocol$domain"
 
-
     #=== Server search ===
     echo -e "    ${BLUE}[+]${NC} Looking for Server ${CYAN}(Passive)${NC}"
     KEYWORDS=""
@@ -47,15 +46,17 @@ SCAV() {
     if [[ $AGRESSIVE == 1 ]]; then
         agress_tmp=$(mktemp)
         echo "$agress_tmp" >> "$TEMP_FILES"
-        echo -e "    ${BLUE}[+]${NC} Robots.txt analysis ${YELLOW}(Direct access)${NC}"
+        echo -e "    ${BLUE}[+]${NC} Robots.txt analysis ${RED}(Direct access)${NC}"
 
         robots_status=$(curl "${CURLOPTIONS[@]}" -o "$agress_tmp" -w "%{http_code}" "${BASE_URL}/robots.txt")
         if [[ "$robots_status" == "200" ]]; then
-            echo -e "            ${GREEN}+${NC} robots.txt found :"
+            echo -e "        ${GREEN}+${NC} robots.txt found :"
             echo "----------------------------------------------------------"
             cat "$agress_tmp"
             echo "----------------------------------------------------------"
             echo
+        elif [[ "$robots_status" != "404" ]]; then
+            echo -e "        ${GREEN}+${NC} robots.txt : ${YELLOW}[$robots_status]${NC}"
         fi
         rm -f "$agress_tmp"
     fi
@@ -64,26 +65,26 @@ SCAV() {
     echo -e "    ${BLUE}[+]${NC} Searching for CMS signatures ${CYAN}(Passive)${NC}"
     declare -A CMS_SIGNS
 
-    CMS_SIGNS["WordPress"]="wp-login.php|wp-admin/|wp-content|wp-includes|xmlrpc.php|wp-json|set-cookie: wordpress_logged_in|wp-settings-|X-Pingback|/wp-admin/admin-ajax.php|/wp-cron.php"
-    CMS_SIGNS["Drupal"]="X-Generator: Drupal|/misc/drupal.js|sites/default/files|core/modules|/filter/tips|/batch|/comment/reply"
-    CMS_SIGNS["Joomla"]="Joomla|/administrator/manifests/files/joomla.xml|/language/en-GB/en-GB.xml|/modules/custom.xml|/templates/system/css/system.css|/templates/system/js/core.js|X-Joomla-Cache"
-    CMS_SIGNS["PrestaShop"]="PrestaShop|/modules/prestashop/prestashop.php|/themes/prestashop/assets|X-PrestaShop-Cache|/img/logo_prestashop.png|/classes/PrestaShopAutoload.php"
-    CMS_SIGNS["Magento"]="Magento|/pub/static/version|/setup/index.php|/skin/frontend|index.php?route=checkout/cart|X-Magento-Vary|/js/mage/|/var/view_preprocessed"
-    CMS_SIGNS["Shopify"]="X-Shopify-Stage|X-Shopify-Cache|X-Shopify-Api-Request|cdn.shopify.com|cdn.shopifycdn.net|X-Shopify-Hmac-Sha256|Shopify.buy|shopify-assets"
-    CMS_SIGNS["MediaWiki"]="MediaWiki|id=\"mw-|class=\"mw-|X-Powered-By: MediaWiki|/w/load.php|/w/api.php"
-
-    CMS_SIGNS["phpBB"]="phpbb3_|phpbb_sid|phpbb"
-    CMS_SIGNS["TYPO3"]="typo3|TSFE|typo3temp"
-    CMS_SIGNS["Concrete5"]="concrete5|concrete5_cid"
-    CMS_SIGNS["OpenCart"]="OpenCart|index.php?route=common/home|_oc_"
-    CMS_SIGNS["Bitrix"]="Bitrix|BX_SESSION|bitrix_sessid"
-    CMS_SIGNS["Squarespace"]="squarespace.com|squarespace-session"
-    CMS_SIGNS["Ghost"]="ghost.js|ghost-content"
-    CMS_SIGNS["ExpressionEngine"]="exp_sessionid|exp_tracker"
-    CMS_SIGNS["MODX"]="modx_session|modxVisitorId"
-    CMS_SIGNS["Umbraco"]="UmbracoPageId|umbSessionId"
-    CMS_SIGNS["Craft CMS"]="craft\\_\\w+|craft\\_\\w+\\_"
-    CMS_SIGNS["VBulletin"]="vbforum|vBulletin|vbssl"
+    CMS_SIGNS["WordPress"]="wp-login.php|wp-admin/|wp-content|wp-includes|xmlrpc.php|wp-json|set-cookie: wordpress_logged_in|wp-settings-|X-Pingback|/wp-admin/admin-ajax.php|/wp-cron.php|<meta name=\"generator\" content=\"WordPress"
+    CMS_SIGNS["Drupal"]="X-Generator: Drupal|/misc/drupal.js|sites/default/files|core/modules|/filter/tips|/batch|/comment/reply|/user/login|/admin/config|cookie.*Drupal.visitor.cookie|meta.*Drupal|/core/assets|/core/themes|\?q="
+    CMS_SIGNS["Joomla"]="Joomla|/administrator/manifests/files/joomla.xml|/language/en-GB/en-GB.xml|/modules/custom.xml|/templates/system/css/system.css|/templates/system/js/core.js|X-Joomla-Cache|/libraries/cms/version/version.php|/administrator/templates/|meta.*generator.*Joomla|index\.php\?option=com_|cookie.*joomla|X-Content-Encoded-By: Joomla|mootools-core\.js|jquery-noconflict\.js"
+    CMS_SIGNS["PrestaShop"]="PrestaShop|/modules/prestashop/prestashop.php|/themes/prestashop/assets|X-PrestaShop-Cache|X-PrestaShop-Tags|/img/logo_prestashop.png|/classes/PrestaShopAutoload.php|/admin-dev/|cookie.*PrestaShop|index\.php\?controller=|/override/|/app/config/|generator.*PrestaShop"
+    CMS_SIGNS["Magento"]="Magento|/pub/static/version|/setup/index.php|/skin/frontend|index\.php\?route=checkout/cart|X-Magento-Vary|X-Magento-Tags|/js/mage/|/var/view_preprocessed|/downloader|meta.*Magento|cookie.*frontend|cookie.*adminhtml|/customer/account|/catalog/product"
+    CMS_SIGNS["Shopify"]="X-Shopify-Stage|X-Shopify-Cache|X-Shopify-Api-Request|cdn\.shopify\.com|cdn\.shopifycdn\.net|X-Shopify-Hmac-Sha256|Shopify\.buy|shopify-assets|X-Shopify-Topic|X-Shopify-Shop-Domain|X-Shopify-Webhook-Id|\.myshopify\.com|meta.*shopify|window\.Shopify"
+    CMS_SIGNS["MediaWiki"]="MediaWiki|id=\"mw-|class=\"mw-|X-Powered-By: MediaWiki|/w/load.php|/w/api.php|Special:UserLogin|index\.php\?title=Special:|generator.*MediaWiki|cookie.*wikiSession|mw-content-text|mw-headline|load\.php\?modules="
+    CMS_SIGNS["phpBB"]="phpbb3_|phpbb_sid|phpbb|viewtopic\.php|ucp\.php|memberlist\.php|faq\.php|styles/|imageset/|adm/|phpbb3_session|generator.*phpbb|phpbb3_.*_session|cookie.*phpbb3|javascript:\s*phpbb|sid="
+    #
+    CMS_SIGNS["TYPO3"]="typo3|TSFE|typo3temp|/typo3/sysext|/typo3conf|/typo3/index.php|X-TYPO3-Cache-Control|meta.*TYPO3|cookie.*TYPO3_BE|cookie.*TYPO3_FE|TYPO3\\/CMS\\/Backend\\/|\\?id="
+    CMS_SIGNS["ConcreteCMS"]="concrete5|concrete5_cid|/concrete/|/concrete5/|/blocks/|/packages/|/application/config|/application/files|/files/|/concrete/themes/|meta.*concrete5|cookie.*concrete5|class=\"concrete|id=\"concrete"
+    CMS_SIGNS["OpenCart"]="OpenCart|index.php?route=common/home|_oc_|/catalog/|/system/storage/|/admin/|/catalog/view/theme/|_oc_|/index.php?route=product/|/index.php?route=checkout/"
+    CMS_SIGNS["Bitrix"]="Bitrix|BX_SESSION|bitrix_sessid|/bitrix/|/bitrix/templates/|/bitrix/components/|/bitrix/js/|X-Bitrix-|meta.*Bitrix|cookie.*BX_SESSION|cookie.*bitrix_sessid|BX\\.ready|\\?bitrix_"
+    CMS_SIGNS["Squarespace"]="squarespace.com|squarespace-session|static.squarespace.com|sqsp|templateID"
+    CMS_SIGNS["Ghost"]="ghost.js|ghost-content|<meta name=\"generator\" content=\"Ghost\"|X-Powered-By: Ghost|/ghost/|/ghost/api/|/ghost/content/|class=\"ghost|id=\"ghost"
+    CMS_SIGNS["ExpressionEngine"]="exp_sessionid|exp_tracker|\\{exp:channel:entries\\}|X-Powered-By: ExpressionEngine|index\.php|cookie.*exp_sessionid|cookie.*exp_tracker" #index\.php"
+    CMS_SIGNS["MODX"]="modx_session|modxVisitorId|MODX Revolution|/core/|/connectors/|meta.*generator.*MODX|cookie.*modx_session|cookie.*modxVisitorId|MODx\\.|modx\\.|MODx\\.config"
+    CMS_SIGNS["Umbraco"]="UmbracoPageId|umbSessionId|/umbraco/|/umbraco_client/|meta.*generator.*Umbraco|cookie.*UmbracoPageId|cookie.*umbSessionId|Umbraco|UmbRequest|/umbraco/api/|/umbraco/backoffice/"
+    CMS_SIGNS["CraftCMS"]="craft_\\w+|craft_\\w+_"
+    CMS_SIGNS["VBulletin"]="vbforum|vBulletin|vbssl|bb_sessionhash|/forum.php|/member.php|/clientscript/|/admincp/|vb_login_username|meta.*generator.*vBulletin|cookie.*bb_"
     CMS_SIGNS["Shopware"]="shopware"
     CMS_SIGNS["BigCommerce"]="bigcommerce"
     # (Wix, Weebly, Shopify, Webflow) 
@@ -94,20 +95,55 @@ SCAV() {
     # Search for CMS
     check_cms=0
     TECHS=()
+
+    declare -A cms_scores
+    # Establish a score based on signatures to determine a CMS
     for TECH in "${!CMS_SIGNS[@]}"; do
         if grep -iqE "${CMS_SIGNS[$TECH]}" "$TMP_HTML" "$TMP_HEADERS"; then
-            echo -e "        ${GREEN}+${NC} Probable CMS detected: $TECH"
-            KEYWORDS="$TECH"
+
+            local score=0
+            IFS="|" read -ra signatures <<< "${CMS_SIGNS[$TECH]}"
+            for sign in "${signatures[@]}"; do
+                sign_count=0
+                sign_count=$(grep -oi "$sign" "$TMP_HTML" "$TMP_HEADERS" | wc -l)
+                if [[ $sign_count != 0 ]]; then
+                    cms_scores[$TECH]=$(( ${cms_scores[$TECH]:-0} + 1 ))
+                    ((score++))
+                fi
+            done
             check_cms=1
-            TECHS+=("$TECH")
+        fi
+    done
+    # No score
+    if [[ $check_cms == 0 ]]; then
+        TECHS+=("NO_CMS_FOUND")
+        echo -e "        ${RED}[!] ${NC}No CMS found"
+    else
+        best_cms=""
+        max_score=0
+        # Define the most probable CMS
+        for cms in "${!cms_scores[@]}"; do
+            score=${cms_scores[$cms]}
+            if (( score > max_score )); then
+                max_score=$score
+                best_cms=$cms
+            fi
+        done
+        # The score must be greater than 1
+        if [[ -n $best_cms && $max_score -gt 1 ]]; then
+            echo -e "        ${GREEN}+${NC} Probable CMS detected: $best_cms ${GREEN}>${NC} score : $max_score"
+
+            KEYWORDS="$best_cms"
+            TECHS+=("$best_cms")
 
             # If CMS found, search for version
             check_ver=0
             while read -r line; do
                 content=$(echo "$line" | grep -Eo 'content="[^"]+"' | cut -d\" -f2)
-                echo -e "        ${GREEN}+${NC} CMS version: $content"
+                echo -e "          ${GREEN}>${NC} CMS version: $content"
                 KEYWORDS="$KEYWORDS $content"
                 check_ver=1
+
             done < <(grep -i '<meta name="generator"' "$TMP_HTML" | grep -i "$KEYWORDS")
 
             # If CMS and version do searchsploit
@@ -116,11 +152,12 @@ SCAV() {
                 echo -e "      ${PURPLE}> searchsploit${NC} -w $KEYWORDS"
                 searchsploit -w $KEYWORDS
             fi
+        # Considers that there is insufficient evidence to determine the CMS
+        else
+            TECHS+=("NO_CMS_FOUND")
+            echo -e "        ${RED}[!] ${NC}No CMS found"
         fi
-    done
-    if [[ $check_cms == 0 ]]; then
-        TECHS+=("NO_CMS_FOUND")
-        echo -e "        ${RED}[!]${NC} No CMS found"
+
     fi
     echo
 
@@ -135,27 +172,29 @@ SCAV() {
     echo -e "    ${BLUE}[+]${NC} Searching for JS Frameworks signatures ${CYAN}(Passive)${NC}"
     declare -A JS_SIGNS
 
-    JS_SIGNS["Vue.js"]="vue.js|vue.runtime|data-v-"
-    JS_SIGNS["React"]="react|react-dom|data-reactroot"
-    JS_SIGNS["Angular"]="angular.min.js|ng-version|ng-app"
-    JS_SIGNS["Ember.js"]="ember.min.js|id=\"ember"
-    JS_SIGNS["Backbone.js"]="backbone.min.js"
-    JS_SIGNS["Bootstrap"]="bootstrap.min.css|bootstrap.min.js"
-    JS_SIGNS["jQuery"]="jquery.min.js|jquery.js|jquery"
-    JS_SIGNS["Svelte"]="svelte\.js|svelte-hydration|svelte-routing"
-    JS_SIGNS["Alpine.js"]="alpinejs|x-data=|x-bind:"
-    JS_SIGNS["Mithril.js"]="mithril\.js|m\.mount"
-    JS_SIGNS["Preact"]="preact|preact\.min\.js"
-    JS_SIGNS["LitElement"]="lit-element|lit-html"
-    JS_SIGNS["Next.js"]="__next|next\.js"
-    JS_SIGNS["Nuxt.js"]="nuxt\.js"
-    JS_SIGNS["RxJS"]="rxjs"
-    JS_SIGNS["Tailwind CSS"]="tailwind"
-    JS_SIGNS["Material UI"]="Mui|Material-UI"
-    JS_SIGNS["Lodash"]="lodash|_\.js"
-    JS_SIGNS["Moment.js"]="moment\.js"
-    JS_SIGNS["Chart.js"]="Chart\.js|chartjs"
-    JS_SIGNS["D3.js"]="d3\.js|d3-selection"
+    JS_SIGNS["Vue.js"]="vue.js|vue.runtime|data-v-|__vue__|@vue/runtime-dom"
+    JS_SIGNS["React"]="react|react-dom|data-reactroot|react-refresh|__REACT_DEVTOOLS_GLOBAL_HOOK__"
+    JS_SIGNS["Angular"]="angular.min.js|ng-version|ng-app|zone.js|angular|ng-reflect-"
+    JS_SIGNS["Ember.js"]="ember.min.js|id=\"ember|ember-view|ember-data"
+    JS_SIGNS["Backbone.js"]="backbone.min.js|Backbone"
+    JS_SIGNS["Bootstrap"]="bootstrap.min.css|bootstrap.min.js|bs-tooltip|bs-popover|card-header"
+    JS_SIGNS["jQuery"]="jquery.min.js|jquery.js|jquery|jQuery"
+    JS_SIGNS["Svelte"]="svelte\.js|svelte-hydration|svelte-routing|SvelteComponent"
+    JS_SIGNS["Alpine.js"]="alpinejs|x-data=|x-bind:|x-on:|x-show="
+    JS_SIGNS["Mithril.js"]="mithril\.js|m\.mount|m\\("
+    JS_SIGNS["Preact"]="preact|preact\.min\.js|__preact_"
+    JS_SIGNS["LitElement"]="lit-element|lit-html|LitElement"
+    JS_SIGNS["Next.js"]="__next|next\.js|next-head"
+    JS_SIGNS["Nuxt.js"]="nuxt\.js|data-n-head|nuxt-link"
+    JS_SIGNS["RxJS"]="rxjs|Rx.Subject|Rx.Observable"
+    JS_SIGNS["Tailwind CSS"]="tailwind|tw-"
+    JS_SIGNS["Material UI"]="Mui|Material-UI|MuiButton-root|MuiTypography-root"
+    JS_SIGNS["Lodash"]="lodash|_\.js|_.debounce|_.cloneDeep"
+    JS_SIGNS["Moment.js"]="moment\.js|moment\("
+    JS_SIGNS["Chart.js"]="Chart\.js|chartjs|chart\.js"
+    JS_SIGNS["D3.js"]="d3\.js|d3-selection|d3-scale|d3-array"
+    JS_SIGNS["SolidJS"]="solid-js|solid\.js|createSignal"
+    JS_SIGNS["Qwik"]="qwik|qwikloader|useVisibleTask"
 
     check_frame=0
     for FRAMEW in "${!JS_SIGNS[@]}"; do
@@ -181,14 +220,12 @@ SCAV() {
     SERVER_SIGNS["LiteSpeed"]="Server: LiteSpeed|litespeed"
     SERVER_SIGNS["IIS"]="Server: Microsoft-IIS|ASP.NET"
     SERVER_SIGNS["Caddy"]="Server: Caddy|caddyserver"
-
     SERVER_SIGNS["Express.js"]="X-Powered-By: Express"
     SERVER_SIGNS["Flask"]="Server: Werkzeug|Python/|Flask"
     SERVER_SIGNS["Django"]="csrftoken|Set-Cookie: django|X-Frame-Options: DENY"
     SERVER_SIGNS["Ruby on Rails"]="Set-Cookie: _rails_|X-Runtime:|mod_rails"
     SERVER_SIGNS["Laravel"]="X-Powered-By: Laravel|Set-Cookie: laravel"
     SERVER_SIGNS["Symfony"]="Set-Cookie: symfony|X-Generator: Symfony|/bundles/framework"
-
 
     check_back=0
     for BACK in "${!SERVER_SIGNS[@]}"; do
@@ -200,55 +237,59 @@ SCAV() {
     [[ $check_back == 1 ]] && echo
 
     #=== Database engines ===
-    echo -e "    ${BLUE}[+]${NC} Searching for Database engines signatures ${CYAN}(Passive)${NC}"
-    declare -A DB_SIGNS
+    if [[ $AGRESSIVE == 1 ]]; then
+        echo -e "    ${BLUE}[+]${NC} Searching for Database engines endpoints ${RED}(Direct access)${NC}"
+        check_db=0
 
-    DB_SIGNS["MySQL"]="MySQL server error|You have an error in your SQL syntax|mysqli_|SQLSTATE\[HY000\]"
-    DB_SIGNS["PostgreSQL"]="PostgreSQL query failed|pg_connect\(|PostgreSQL.*ERROR"
-    DB_SIGNS["SQLite"]="SQLite exception|SQLITE_ERROR|SQLite3::"
-    DB_SIGNS["MongoDB"]="MongoError|MongoDB.Driver|mongodb://"
-    DB_SIGNS["Redis"]="RedisException|Connection refused.*6379"
-    DB_SIGNS["MariaDB"]="MariaDB server|MariaDB error"
+        #echo -e "    ${BLUE}[+]${NC} Searching for Database engines signatures ${CYAN}(Passive)${NC}"
+        #declare -A DB_SIGNS
 
-    DB_SIGNS["MySQL"]="MySQL server error|You have an error in your SQL syntax|mysqli_|SQLSTATE\[HY000\]"
-    DB_SIGNS["PostgreSQL"]="PostgreSQL query failed|pg_connect\(|PostgreSQL.*ERROR"
-    DB_SIGNS["SQLite"]="SQLite exception|SQLITE_ERROR|SQLite3::"
-    DB_SIGNS["MongoDB"]="MongoError|MongoDB.Driver|mongodb://|Connection refused.*mongodb|auth failed|network error|timeout"
-    DB_SIGNS["Redis"]="RedisException|Connection refused.*6379|LOADING Redis is loading the dataset in memory|NOAUTH Authentication required"
-    DB_SIGNS["MariaDB"]="MariaDB server|MariaDB error"
-    DB_SIGNS["Cassandra"]="com.datastax.driver.core.exceptions|timeout during query execution|Invalid query|connection refused"
-    DB_SIGNS["DynamoDB"]="ResourceNotFoundException|ProvisionedThroughputExceededException|ValidationException|ThrottlingException"
-    DB_SIGNS["CouchDB"]="not_found|db unavailable|conflict|unauthorized"
-    DB_SIGNS["Elasticsearch"]="ElasticsearchException|NoNodeAvailableException|ClusterBlockException|search_phase_execution_exception"
-    DB_SIGNS["GraphQL"]="GraphQL error|GraphQL::ExecutionError|ValidationError|Cannot query field|Field \"[^\"]+\" not found"
+        #DB_SIGNS["MySQL"]="MySQL server error|You have an error in your SQL syntax|mysqli_|SQLSTATE\\[HY000\\]|mysql_fetch"
+        #DB_SIGNS["PostgreSQL"]="PostgreSQL query failed|pg_connect\\(|PostgreSQL.*ERROR|psql: FATAL"
+        #DB_SIGNS["SQLite"]="SQLite exception|SQLITE_ERROR|SQLite3::|sqlite_master|UNIQUE constraint failed"
+        #DB_SIGNS["MongoDB"]="MongoError|MongoDB.Driver|mongodb://|Connection refused.*mongodb|errmsg|mongod"
+        #DB_SIGNS["Redis"]="RedisException|Connection refused.*6379|LOADING Redis is loading the dataset in memory|NOAUTH Authentication required"
+        #DB_SIGNS["MariaDB"]="MariaDB server|MariaDB error|MariaDB version"
+        #DB_SIGNS["Cassandra"]="com.datastax.driver.core.exceptions|timeout during query execution|Invalid query|connection refused|read timeout|write timeout"
+        #DB_SIGNS["DynamoDB"]="ResourceNotFoundException|ProvisionedThroughputExceededException|ValidationException|ThrottlingException|ConditionalCheckFailedException"
+        #DB_SIGNS["CouchDB"]="not_found|db unavailable|conflict|unauthorized|_replicator|_users"
+        #DB_SIGNS["Elasticsearch"]="ElasticsearchException|NoNodeAvailableException|ClusterBlockException|search_phase_execution_exception|es_rejected_execution_exception"
+        #DB_SIGNS["GraphQL"]="GraphQL error|GraphQL::ExecutionError|ValidationError|Cannot query field|Field \"[^\"]+\" not found|graphql.errors"
 
-    check_db=0
-    for DB in "${!DB_SIGNS[@]}"; do
-      if grep -iqE "${DB_SIGNS[$DB]}" "$TMP_HTML"; then
-        echo -e "        ${GREEN}+${NC} Probable DB: $DB"
-        check_db=1
-      fi
-    done
-    [[ $check_db == 1 ]] && echo
+        #for DB in "${!DB_SIGNS[@]}"; do
+        #  if grep -iqE "${DB_SIGNS[$DB]}" "$TMP_HTML"; then
+        #    echo -e "        ${GREEN}+${NC} Probable DB: $DB"
+        #    check_db=1
+        #  fi
+        #done
 
-    tmp_html=$(mktemp)
-    echo "$tmp_html" >> "$TEMP_FILES"
+        tmp_html=$(mktemp)
+        echo "$tmp_html" >> "$TEMP_FILES"
 
-    check_db=0
-    COMMON_ENDPOINT_PATHS["GraphQL"]="/graphql|/v1/graphql|/api/graphql|/graphql-api|/graphiql|/graphql/execute"
-    COMMON_ENDPOINT_PATHS["gRPC"]="/grpc|/grpc.api|/grpc.health.v1.Health/Check"
-    COMMON_ENDPOINT_PATHS["NoSQL_Databases"]="/mongo|/mongodb|/redis|/cassandra|/dynamodb|/couchdb|/elasticsearch"
-    for path in "${COMMON_ENDPOINT_PATHS[@]}"; do
-        path_status=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code}" "${BASE_URL}${path}")
+        declare -A COMMON_ENDPOINT_PATHS
 
-        if [[ "$path_status" == "200" ]]; then
-            echo -e "        ${GREEN}+${NC} Found DB path: $path ${GREEN}[$path_status]${NC}"
-            check_db=1
-        fi
-    done
-    [[ $check_db == 1 ]] && echo
+        COMMON_ENDPOINT_PATHS["GraphQL"]="/graphql|/v1/graphql|/api/graphql|/graphql-api|/graphiql|/graphql/execute"
+        COMMON_ENDPOINT_PATHS["gRPC"]="/grpc|/grpc.api|/grpc.health.v1.Health/Check"
+        COMMON_ENDPOINT_PATHS["NoSQL_Databases"]="/mongo|/mongodb|/redis|/cassandra|/dynamodb|/couchdb|/elasticsearch"
 
-    rm -f "$tmp_html"
+        for db_type in "${!COMMON_ENDPOINT_PATHS[@]}"; do
+            IFS='|' read -ra db_paths <<< "${COMMON_ENDPOINT_PATHS[$db_type]}"
+
+            for path in "${db_paths[@]}"; do
+                path_status=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code}" "${BASE_URL}${path}")
+
+                if [[ "$path_status" == "200" ]]; then
+                    echo -e "        ${GREEN}+${NC} Found DB path: $path ${GREEN}[$path_status]${NC}"
+                    check_db=1
+                elif [[ "$path_status" != "404" ]]; then
+                    echo -e "            ${GREEN}+${NC} DB path : $path ${YELLOW}[$path_status]${NC}"
+                fi
+            done
+        done
+        [[ $check_db == 1 ]] && echo
+
+        rm -f "$tmp_html"
+    fi
 
     #=== Third-party platforms ===
     echo -e "    ${BLUE}[+]${NC} Looking for Third-party platforms ${CYAN}(Passive)${NC}"
@@ -376,7 +417,7 @@ SCAV() {
         fi
     fi
     echo
-    echo
+    #echo
 }
 
 #=== Agressive mode ===
@@ -386,69 +427,98 @@ EXPLORE() {
     echo "$tmp_html" >> "$TEMP_FILES"
 
     # CMS paths
-    echo -e "        ${BLUE}[+]${NC} Common Paths ${YELLOW}(Direct access)${NC}"
+    found_path=0
+    echo -e "        ${BLUE}[+]${NC} Common Paths ${RED}(Direct access)${NC}"
     for path in "${CMS_PATHS[@]}"; do
         path_status=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code}" "${BASE_URL}${path}")
 
         if [[ "$path_status" == "200" ]]; then
-            echo -e "            ${GREEN}+${NC} ${BASE_URL}${path}${GREEN}[$path_status]${NC}"
+            echo -e "            ${GREEN}+${NC} ${BASE_URL}${path} ${GREEN}[$path_status]${NC}"
+            found_path=1
+        elif [[ "$path_status" != "404" ]]; then
+            echo -e "            ${GREEN}+${NC} ${BASE_URL}${path} ${YELLOW}[$path_status]${NC}"
+            found_path=1
         fi
         # Sleep
         [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
     done
+    [[ $found_path == 1 ]] && echo
 
     # Sensitive files
-    echo -e "        ${BLUE}[+]${NC} Verification of configuration, backups, and sensitive files ${YELLOW}(Direct access)${NC}"
+    found_path=0
+    echo -e "        ${BLUE}[+]${NC} Verification of configuration, backups, and sensitive files ${RED}(Direct access)${NC}"
     for f in "${SENSITIVE_FILES[@]}"; do
         file_status=$(curl "${CURLOPTIONS[@]}" -o /dev/null -w "%{http_code}" "${BASE_URL}${f}")
 
         if [[ "$file_status" == "200" ]]; then
-            echo -e "              ${GREEN}+${NC} ${BASE_URL}${f} ${GREEN}[$file_status]${NC}"
+            echo -e "            ${GREEN}+${NC} ${BASE_URL}${f} ${GREEN}[$file_status]${NC}"
+            found_path=1
+        elif [[ "$file_status" != "404" ]]; then
+            echo -e "            ${GREEN}+${NC} ${BASE_URL}${f} ${YELLOW}[$file_status]${NC}"
+            found_path=1
         fi
         # Sleep
         [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
     done
+    [[ $found_path == 1 ]] && echo
 
     # Admin paths
-    echo -e "        ${BLUE}[+]${NC} Checking the admin page ${YELLOW}(Direct access)${NC}"
+    found_path=0
+    echo -e "        ${BLUE}[+]${NC} Checking the admin page ${RED}(Direct access)${NC}"
     for path in "${ADMIN_PATHS[@]}"; do
         admin_status=$(curl "${CURLOPTIONS[@]}" -o /dev/null -w "%{http_code}" "${BASE_URL}${path}")
 
         if [[ "$admin_status" == "200" ]]; then
-            echo -e "              ${GREEN}+${NC} ${BASE_URL}${path} ${GREEN}[$admin_status]${NC} --> ${RED}[!] ${NC}Admin panel detected"
+            echo -e "            ${GREEN}+${NC} ${BASE_URL}${path} ${GREEN}[$admin_status]${NC} --> ${RED}[!] ${NC}Admin panel detected"
+            found_path=1
+        elif [[ "$admin_status" != "404" ]]; then
+            echo -e "            ${GREEN}+${NC} ${BASE_URL}${path} ${YELLOW}[$admin_status]${NC} --> ${RED}[!] ${NC}Admin panel detected"
+            found_path=1
         fi
         # Sleep
         [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
     done
+    [[ $found_path == 1 ]] && echo
 
     # Directories
-    echo -e "        ${BLUE}[+]${NC} Verifying directory indexing ${YELLOW}(Direct access)${NC}"
+    found_path=0
+    echo -e "        ${BLUE}[+]${NC} Verifying directory indexing ${RED}(Direct access)${NC}"
     for dir in "${DIRS[@]}"; do
         dir_status=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code}" "${BASE_URL}${dir}")
 
         if [[ "$dir_status" == "200" ]]; then
             contents=$(cat "$tmp_html" | grep -i 'Index of')
-
             if [[ -n "$contents" ]]; then
-                echo -e "              ${GREEN}+${NC} ${BASE_URL}${dir} ${GREEN}[$dir_status]${NC} --> ${RED}[!] ${NC}Directory index enabled"
+                echo -e "            ${GREEN}+${NC} ${BASE_URL}${dir} ${GREEN}[$dir_status]${NC} --> ${RED}[!] ${NC}Directory index enabled"
             else
-                echo -e "              ${GREEN}+${NC} ${BASE_URL}${dir} ${GREEN}[$dir_status]${NC}"
+                echo -e "            ${GREEN}+${NC} ${BASE_URL}${dir} ${GREEN}[$dir_status]${NC}"
             fi
+            found_path=1
+        elif [[ "$dir_status" != "404" ]]; then
+            echo -e "            ${GREEN}+${NC} ${BASE_URL}${dir} ${YELLOW}[$dir_status]${NC}"
+            found_path=1
         fi
         # Sleep
         [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
     done
+    [[ $found_path == 1 ]] && echo
 
     # Known RCE
-    echo -e "        ${BLUE}[+]${NC} Search for known exposed PHP files for RCE ${YELLOW}(Direct access)${NC}"
+    found_path=0
+    echo -e "        ${BLUE}[+]${NC} Search for known exposed PHP files for RCE ${RED}(Direct access)${NC}"
     for file in "${RCE_FILES[@]}"; do
         status=$(curl "${CURLOPTIONS[@]}" -o /dev/null -w "%{http_code}" "${BASE_URL}${file}")
         if [[ "$status" == "200" ]]; then
-            echo "            ${GREEN}+${NC} Potentially dangerous file exposed : ${BASE_URL}${file} ${GREEN}[$status]${NC}"
+            echo -e "            ${GREEN}+${NC} Potentially dangerous file exposed : ${BASE_URL}${file} ${GREEN}[$status]${NC}"
+            found_path=1
+        elif [[ "$status" != "404" ]]; then
+            echo -e "            ${GREEN}+${NC} ${BASE_URL}${file} ${YELLOW}[$status]${NC}"
+            found_path=1
         fi
         # Sleep
         [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
     done
+    #[[ $found_path == 1 ]] && echo
 
     echo
     rm -f "$tmp_html"
@@ -506,7 +576,7 @@ CMSALYZER() {
     #elif [[ $CMS == "Wix" ]]; then
     #elif [[ $CMS == "Weebly" ]]; then
     #elif [[ $CMS == "Webflow" ]]; then
-    #elif [[ $CMS == "October CMS" ]]; then
+    #elif [[ $CMS == "OctoberCMS" ]]; then
     #elif [[ $CMS == "Shopify" ]]; then
     #elif [[ $CMS == "Squarespace" ]]; then
 
