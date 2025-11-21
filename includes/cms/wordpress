@@ -1,97 +1,164 @@
 #WORDPRESS() {
     #=== Search for version ===
-    echo -e "        ${BLUE}[+]${NC} Search for WordPress version"
-    version_meta=$(grep -i '<meta name="generator"' "$TMP_HTML" | grep -i 'WordPress' | grep -Eo 'content="[^"]+"' | head -n1 | cut -d\" -f2)
+    echo -e "        ${BLUE}[+]${NC} Search for WordPress version ${CYAN}(Passive)${NC}/${RED}(Direct access)${NC}"
+    version_meta=$(grep -i '<meta name="generator"' "$TMP_HTML" | grep -i "$CMS" | grep -Eo 'content="[^"]+"' | head -n1 | cut -d\" -f2)
     if [[ -n "$version_meta" ]]; then
-    #if [[ "$version_meta" == *WordPress* ]]; then
-        echo -e "            ${GREEN}+${NC} CMS version: $version_meta"
+        echo -e "            ${GREEN}+${NC} $version_meta"
+        echo
     else
         version_feed=$(curl "${CURLOPTIONS[@]}" "$BASE_URL/feed" | grep -oP '<generator>https?://wordpress.org/\?v=\K[0-9.]+')
         if [[ -n "$version_feed" ]]; then
-            echo -e "            ${GREEN}+${NC} CMS version: $version_feed"
-        #else
-        #    echo "            - Version not detected"
+            echo -e "            ${GREEN}+${NC} $version_feed"
+            echo
         fi
     fi
 
     #=== Exposed users ===
-    echo -e "        ${BLUE}[+]${NC} Search for exposed users"
+    check_user=0
+    echo -e "        ${BLUE}[+]${NC} Search for exposed users ${RED}(Direct access)${NC}"
     for id in {1..5}; do
         user_url="${BASE_URL}/?author=${id}"
         loc=$(curl "${CURLOPTIONS[@]}" -I "$user_url" | grep -i Location | awk '{print $2}' | tr -d '\r\n')
         if [[ -n "$loc" && "$loc" != "$user_url" ]]; then
+            check_user=1
             if [[ "$loc" == *"/author/"* ]]; then
-                #echo "            + User $id exposed to $loc"
                 username=$(grep -oP '/author/\K[^/]+' <<< "$loc")
-                echo -e "            ${GREEN}+${NC} "$user_url" redirects to $loc --> ${RED}[!] ${NC}User found: $id : $username"
+                echo -e "            ${GREEN}+${NC} "$user_url" --> $loc"
+                echo -e "              ${GREEN}>${NC} ${RED}[!] ${NC}User found: $id : $username"
             else
-                echo -e "            ${GREEN}+${NC} "$user_url" redirects to $loc"
+                echo -e "            ${GREEN}+${NC} "$user_url" --> $loc"
             fi
         fi
     done
+    [[ $check_user == 1 ]] && echo
 
     #=== Exposed REST API ===
-    echo -e "        ${BLUE}[+]${NC} Detection of exposed REST API"
+    # Users
+    echo -e "        ${BLUE}[+]${NC} Detection of exposed REST API ${RED}(Direct access)${NC}"
     api_users=$(curl "${CURLOPTIONS[@]}" "${BASE_URL}/wp-json/wp/v2/users")
     if [[ -n "$api_users" && "$api_users" != "[]" ]]; then
-        echo -e "              ${GREEN}+${NC} Users exposed via REST API"
-        echo -e "                ${GREEN}>${NC} $(echo "$api_users" | jq -r '.[].name' | head -n 5 | sed 's/^/              /')"
+        echo -e "            ${GREEN}+${NC} Users exposed via REST API"
+        echo -en "              ${GREEN}>${NC} Name: $(echo "$api_users" | jq -r '.[].name' | head -n 5)"
+        echo -e " | Slug: $(echo "$api_users" | jq -r '.[].slug' | head -n 5)"
+        #echo
+    fi
+    # Settings
+    api_settings_status=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code}" "${BASE_URL}/wp-json/wp/v2/settings")
+    api_settings=$(cat "$tmp_html")
+
+    if [[ "$api_settings_status" =~ ^2 ]]; then
+        echo -e "            ${GREEN}+${NC} Settings exposed via REST API"
+        if [[ -n "$api_settings" && "$api_settings" != "[]" ]]; then
+            echo -e "              ${GREEN}>${NC} $(echo \"$api_settings\")"
+            echo
+        fi
+    elif [[ "$api_settings_status" != "404" ]]; then
+        echo -e "            ${GREEN}+${NC} Settings exposed via REST API"
+        echo -e "              ${GREEN}>${NC} ${BASE_URL}/wp-json/wp/v2/settings ${YELLOW}[$api_settings_status]${NC}"
+        echo
     fi
 
     #=== XMLRPC.PHP ===
-    echo -e "        ${BLUE}[+]${NC} Analyze xmlrpc.php for vulnerabilities"
+    echo -e "        ${BLUE}[+]${NC} Analyze xmlrpc.php for vulnerabilities ${RED}(Direct access)${NC}"
     xml_status=$(curl "${CURLOPTIONS[@]}" -o /dev/null -w "%{http_code}" "${BASE_URL}/xmlrpc.php")
     if [[ "$xml_status" == "200" ]]; then
-        echo -e "              ${GREEN}+${NC} xmlrpc.php [$xml_status]"
+        echo -e "            ${GREEN}+${NC} xmlrpc.php [$xml_status]"
         xml="<methodCall><methodName>system.listMethods</methodName><params></params></methodCall>"
         resp=$(curl "${CURLOPTIONS[@]}" -H "Content-Type: text/xml" -d "$xml" "${BASE_URL}/xmlrpc.php")
         if echo "$resp" | grep -q "methodResponse"; then
-            echo -e "                ${GREEN}>${NC} Functional XML-RPC"
+            echo -e "              ${GREEN}>${NC} Functional XML-RPC"
+            echo
         else
-            echo -e "                ${GREEN}>${NC} XML-RPC protected or not working"
+            echo -e "              ${GREEN}>${NC} XML-RPC protected or not working"
+            echo
         fi
+    elif [[ "$xml_status" != "404" ]]; then
+        echo -e "            ${GREEN}+${NC} ${BASE_URL}/xmlrpc.php ${YELLOW}[$xml_status]${NC}"
+        echo
     fi
 
     #=== Theme ===
-    echo -e "        ${BLUE}[+]${NC} Main theme analysis"
+    echo -e "        ${BLUE}[+]${NC} Main theme analysis ${RED}(Direct access)${NC}"
     theme_css_url=$(grep -oP 'wp-content/themes/\K[^/"]+' "$TMP_HTML" | sort -u)
     if [[ -n "$theme_css_url" ]]; then
-        echo -e "              ${GREEN}+${NC} Theme detected: $theme_css_url"
-        theme_status=$(curl "${CURLOPTIONS[@]}"-o /dev/null -w "%{http_code}" "${BASE_URL}/wp-content/themes/${theme_css_url}/style.css")
+        echo -e "            ${GREEN}+${NC} Theme detected: $theme_css_url"
+        theme_status=$(curl "${CURLOPTIONS[@]}" -o /dev/null -w "%{http_code}" "${BASE_URL}/wp-content/themes/${theme_css_url}/style.css")
         if [[ "$theme_status" == "200" ]]; then
             ver=$(curl "${CURLOPTIONS[@]}" "${BASE_URL}/wp-content/themes/${theme_css_url}/style.css" | grep -i version | head -n 1)
-            echo -e "                ${GREEN}>${NC} Theme version: $ver"
+            echo -e "              ${GREEN}>${NC} Theme version: $ver"
+        elif [[ "$theme_status" != "404" ]]; then
+            echo -e "          ${GREEN}+${NC} ${BASE_URL}/wp-content/themes/${theme_css_url}/style.css ${YELLOW}[$theme_status]${NC}"
         fi
         # Test forgotten files
         for f in "debug.log" "readme.txt"; do
             f_status=$(curl "${CURLOPTIONS[@]}" -o /dev/null -w "%{http_code}" "${BASE_URL}/wp-content/themes/${theme_css_url}/$f")
-            [[ "$f_status" == "200" ]] && echo "                > /wp-content/themes/${theme_css_url}/$f [$f_status]"
+            [[ "$f_status" == "200" ]] && echo -e "              ${GREEN}>${NC} /wp-content/themes/${theme_css_url}/$f ${GREEN}[$f_status]${NC}"
         done
+        echo
     fi
 
     #=== Plugins ===
-    echo -e "        ${BLUE}[+]${NC} Search for known exposed plugins"
+    echo -e "        ${BLUE}[+]${NC} Search for known exposed plugins ${RED}(Direct access)${NC}"
     declare -a plugins=(
-        "contact-form-7"
-        "revslider"
-        "yoast"
-        "woocommerce"
+        "1003-mortgage-application" "add-to-any" "adirectory" "ai-power"
+        "akismet" "all-in-one-seo-pack" "autoptimize" "avada-builder"
+        "broken-link-checker" "code-snippets" "contact-form-7" "cookie-notice"
+        "disqus-comment-system" "duplicator" "elementor" "elementor-pro"
+        "essential-addons-for-elementor" "fancybox-for-wordpress" "firecask-like-share" "fluent-forms"
+        "gamipress" "google-analytics-for-wordpress" "gravityforms" "gtranslate"
+        "gutenberg-blocks" "instagram-feed" "jetelements" "jetpack"
+        "kadence-blocks" "ketchup-shortcodes" "link-library" "litespeed-cache"
+        "mailchimp-for-wp" "monsterinsights-lite" "nextgen-gallery" "picture-gallery"
+        "popup-maker" "pure-charity" "q2w3-fixed-widget" "rank-math"
+        "redirection" "regenerate-thumbnails" "revslider" "shareaholic"
+        "simple-social-icons" "sitepress-multilingual-cms" "smush" "socializer"
+        "stackable-blocks" "string-locator" "table-of-contents-plus" "tablepress"
+        "themify-builder" "ultimate-addons-for-elementor" "w3-total-cache" "woocommerce"
+        "wordfence-security" "wp-bibtex" "wpbot-pro" "wpforms-lite"
+        "wp-greet" "wp-hotel-booking" "wp-optimize" "wp-pagenavi"
+        "wp-polls" "wp-rocket" "wp-slimstat" "wp-super-cache"
+        "xml-merchant-center" "xml-sitemap-generator-for-google" "yet-another-related-posts-plugin"
+        "yith-woocommerce-wishlist" "yoast" "yoast-seo"
     )
+    found_plugins=()
+    bad_plugins=()
+    plug_witness=0
+    echo_witness=0
+
     for plugin in "${plugins[@]}"; do
         plugin_status=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code}" "${BASE_URL}/wp-content/plugins/${plugin}/readme.txt")
         if [[ "$plugin_status" == "200" ]]; then
-            echo -e "              ${GREEN}+${NC} Detected plugin: $plugin"
+            plug_witness=1
+            if [[ $plug_witness == 1 && $echo_witness == 0 ]]; then
+                #echo -e "            ${GREEN}+${NC} Detected plugin: $plugin"
+                echo -e "            ${GREEN}+${NC} Detected plugins:"
+                echo_witness=1
+            fi
 
             # Version
             plugin_version=$(grep -iE 'stable tag:|version:' "$tmp_html" | head -n1 | sed -E 's/.*(stable tag:|version:)[[:space:]]*([^[:space:]]+).*/\2/I')
 
-            if [[ -n "$plugin_version" ]]; then
-                echo -e "                ${GREEN}>${NC} Plugin version: $plugin_version"
-            else
-            #    echo "                - Version not detected"fi
-            #fi
+            echo -e "              ${GREEN}>${NC} $plugin $plugin_version"
+            found_plugins+=("$plugin $plugin_version")
+
+        elif [[ "$plugin_status" != "404" ]]; then
+            plug_witness=1
+            if [[ $plug_witness == 1 && $echo_witness == 0 ]]; then
+                echo -e "            ${GREEN}+${NC} Detected plugin:"
+                echo_witness=1
+            fi
+            echo -e "            ${GREEN}+${NC} ${BASE_URL}/wp-content/plugins/${plugin}/readme.txt ${YELLOW}[$plugin_status]${NC}"
         fi
     done
+    if [[ ${#found_plugins[@]} != 0 || ${#bad_plugins[@]} != 0 ]]; then
+        echo
+        # Found plugins
+        for plug in "${found_plugins[@]}"; do
+            echo -e "      ${PURPLE}> searchsploit${NC} -w $CMS $plug"
+            searchsploit -w $plug
+        done
+        echo
+    fi
 
     #=== Common paths ===
     declare -a CMS_PATHS=(
