@@ -1,28 +1,119 @@
 #MEDIAWIKI() {
+    #=== Confirm version ===
+    echo -e "        ${BLUE}[+]${NC} Search for $CMS version ${CYAN}(Passive)${NC}"
+    version_meta=$(grep -i '<meta name="generator"' "$TMP_HTML" | grep -i "$CMS" | grep -Eo 'content="[^"]+"' | head -n1 | cut -d\" -f2)
+    if [[ -n "$version_meta" ]]; then
+        echo -e "            ${GREEN}+${NC} $version_meta"
+        echo
+    fi
+
+    #=== Search for Plugins ===
+    echo -e "        ${BLUE}[+]${NC} Search for plugins ${RED}(Direct access)${NC}"
+
+    declare -A found_plugins
+
+    # Retrieve JSON, iterate over each extension in .query[]
+    while IFS=$'\t' read -r name type version; do
+        #version=${version:-"unknown"}
+        found_plugins["${name//\"/}"]="${type//\"/}\\${version//\"/}"
+
+    done < <(curl "${CURLOPTIONS[@]}" "${BASE_URL}/api.php?action=query&meta=siteinfo&siprop=extensions&format=json" \
+             | jq '.query[][] | [.name, .type, (.version // "")] | @tsv' | sed 's/\\t/\t/g')
+
+    #echo -e "            ${GREEN}+${NC} Skins"
+    #for key in "${!found_plugins[@]}"; do
+    #    value="${found_plugins[$key]}"
+    #    if [[ "$value" == *"skin"* ]]; then
+    #        IFS='\' read -r type version <<< "${value#*skin}"
+    #        echo -e "              ${GREEN}>${NC} $key $version"
+    #    fi
+    #done
+
+    #echo -e "            ${GREEN}+${NC} Specialpage"
+    #for key in "${!found_plugins[@]}"; do
+    #    value="${found_plugins[$key]}"
+    #    if [[ "$value" == *"specialpage"* ]]; then
+    #        IFS='\' read -r type version <<< "${value#*specialpage}"
+    #        echo -e "              ${GREEN}>${NC} $key $version"
+    #    fi
+    #done
+
+    #echo -e "            ${GREEN}+${NC} Other"
+    #for key in "${!found_plugins[@]}"; do
+    #    value="${found_plugins[$key]}"
+    #    if [[ "$value" == *"other"* ]]; then
+    #        IFS='\' read -r type version <<< "${value#*other}"
+    #        echo -e "              ${GREEN}>${NC} $key $version"
+    #    fi
+    #done
+
+    #echo -e "            ${GREEN}+${NC} Editor"
+    #for key in "${!found_plugins[@]}"; do
+    #    value="${found_plugins[$key]}"
+    #    if [[ "$value" == *"editor"* ]]; then
+    #        IFS='\' read -r type version <<< "${value#*editor}"
+    #        echo -e "              ${GREEN}>${NC} $key $version"
+    #    fi
+    #done
+
+    #echo -e "            ${GREEN}+${NC} Otherwise"
+    #for key in "${!found_plugins[@]}"; do
+    #    value="${found_plugins[$key]}"
+    #    if [[ ! "$value" =~ (skin|specialpage|other|editor) ]]; then
+    #        IFS='\' read -r type version <<< "${value}"
+    #        echo -e "              ${GREEN}>${NC} $key ($type) $version"
+    #    fi
+    #done
+    #echo
+
+    if [[ ${#found_plugins[@]} != 0 ]]; then
+        # Plugins found
+        echo -e "            ${GREEN}+${NC} Extensions found"
+        for key in "${!found_plugins[@]}"; do
+            value="${found_plugins[$key]}"
+            IFS='\' read -r type version <<< "$value"
+            echo -e "              ${GREEN}>${NC} $key ($type) $version"
+        done
+        echo
+        # Searchsploit
+        for key in "${!found_plugins[@]}"; do
+            value="${found_plugins[$key]}"
+            IFS='\' read -r type version <<< "$value"
+            echo -e "      ${PURPLE}> searchsploit${NC} -w $CMS $key $version"
+            searchsploit -w $CMS $key $version
+        done
+        echo
+    fi
+
+    #=== Common paths ===
     declare -a CMS_PATHS=(
         "/index.php"
-      "/api.php"
-      "/opensearch_desc.php"
-      "/includes/"
-      "/extensions/"
-      "/skins/"
-      "/wiki/"
-      "/load.php"
+        "/api.php"
+        "/opensearch_desc.php"
+        "/load.php"
     )
-
+    #=== Sensitives files ===
     declare -a SENSITIVE_FILES=(
         "/LocalSettings.php"
         "/LocalSettings.php.bak"
+        "/LocalSettings.php~"
         "/LocalSettings.old"
         "/config/index.php"
+        "/debug.log"
+        "/dberror.log"
+        "/mw-debug-Auth_phpBB.log"
+        "/error_log"
     )
-
+    #=== Admin panel ===
     declare -a ADMIN_PATHS=(
-        "/login.php"
+        "/index.php?title=Special:Connexion"
     )
-
+    #=== Directories ===
     declare -a DIRS=(
         "/extensions/"
         "/skins/"
+        "/images/"
+        "/includes/"
+        "/wiki/"
     )
 #}
