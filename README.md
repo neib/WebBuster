@@ -67,6 +67,7 @@ Available modes :
                  -p, --proxy <[protocol://]host[:port]>       Use proxy
                  -c, --cookie <key=value[;key=value]>         Use cookies
                  -A, --user-agent <user-agent>                Custom User Agent
+                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)
                  -v, --verbose                                Verbose mode
                  -nC, --no-crt (use with --wordlist)          Do not check Certificate Transparency Logs (crt.sh)
                  -f, --follow                                 Follow redirects
@@ -89,6 +90,7 @@ Available modes :
                  -p, --proxy <[protocol://]host[:port]>       Use proxy
                  -c, --cookie <key=value[;key=value]>         Use cookies
                  -A, --user-agent <user-agent>                Custom User Agent
+                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)
                  -v, --verbose                                Verbose mode
                  -f, --follow                                 Follow redirects
                  -P, --max-parallel <max-parallel>            Multiprocessing
@@ -111,6 +113,7 @@ Available modes :
                  -p, --proxy <[protocol://]host[:port]>       Use proxy
                  -c, --cookie <key=value[;key=value]>         Use cookies
                  -A, --user-agent <user-agent>                Custom User Agent
+                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)
                  -v, --verbose                                Verbose mode
                  -f, --follow                                 Follow redirects
                  -P, --max-parallel <max-parallel>            Multiprocessing
@@ -130,6 +133,7 @@ Available modes :
                  -p, --proxy <[protocol://]host[:port]>       Use proxy
                  -c, --cookie <key=value[;key=value]>         Use cookies
                  -A, --user-agent <user-agent>                Custom User Agent
+                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)
                  -v, --verbose                                Verbose mode
                  -f, --follow                                 Follow redirects
                  -I, --inhaler                                Additional search for links
@@ -150,6 +154,7 @@ Available modes :
                  -p, --proxy <[protocol://]host[:port]>       Use proxy
                  -c, --cookie <key=value[;key=value]>         Use cookies
                  -A, --user-agent <user-agent>                Custom User Agent
+                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)
                  -v, --verbose                                Verbose mode
                  -f, --follow                                 Follow redirects
                  -P, --max-parallel <max-parallel>            Multiprocessing
