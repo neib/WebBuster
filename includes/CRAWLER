@@ -46,12 +46,15 @@ CRAWL() {
     [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
 
     # Request target
-    code_and_loc=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code} %{url_effective}" --max-time 10 "$1")
+    code_and_loc=$(curl "${CURLOPTIONS[@]}" -o "$tmp_html" -w "%{http_code} %{url_effective}" "$1")
     code=$(echo "$code_and_loc" | awk '{print $1}')
     loc=$(echo "$code_and_loc" | awk '{print $2}')
 
     # Don't waste time
-    [[ "$code" == "000" && "$code" == "404" ]] && return
+    if [[ "$code" == "000" || "$code" =~ ^4 || "$code" =~ ^5 ]]; then
+        echo "$1 ${YELLOW}[$code]${NC}" >> "$TEMP_ERRORS"
+        return
+    fi
 
     # Know where we are
     if [[ "$loc" =~ ^https?://[^/]+(/.*) ]]; then
@@ -219,6 +222,7 @@ SORTCRAWL() {
     mapfile -t sorted_unique_dir < <(printf "%s\n" "${DIR_ENDPOINTS[@]}" | sort -u)
     mapfile -t sorted_unique_file < <(printf "%s\n" "${FILE_ENDPOINTS[@]}" | sort -u)
 
+
     # Remove duplicates files for directories
     filtered_files=()
     for file in "${sorted_unique_file[@]}"; do
@@ -249,7 +253,7 @@ SORTCRAWL() {
             fi
         else
             # Keep track of errors
-            ERRORS_PATH+=("$dir : [$dir_status]")
+            ERRORS_PATH+=("$dir ${YELLOW}[$dir_status]${NC}")
         fi
         # Sleep
         [[ -v TIMER ]] && sleep $(echo "$TIMER/1000" | bc -l)
@@ -257,12 +261,24 @@ SORTCRAWL() {
 
     rm -f "$tmp_html"
 
+    # Errors
+    while IFS= read -r error; do
+        if [[ "$error" =~ ^https?://[^/]+(/.*) ]]; then
+            error_path=${BASH_REMATCH[1]}
+            [[ "$error_path" == "" || "$error_path" == "//" ]] && error_path="/"
+        fi
+        ERRORS_PATH+=("$error_path")
+    done < "$TEMP_ERRORS"
+
+    mapfile -t sorted_unique_error < <(printf "%s\n" "${ERRORS_PATH[@]}" | sort -u)
 
     # Display
     echo
     echo
     echo -e "${BLUE}[+]${NC} Errors:"
-    printf "  ${GREEN}>${NC} %s\n" "${ERRORS_PATH[@]}"
+    for err in "${sorted_unique_error[@]}"; do
+        echo -e "  ${GREEN}>${NC} $err"
+    done
 
     #echo
     #echo "Directories:"
