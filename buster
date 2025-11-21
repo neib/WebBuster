@@ -47,11 +47,12 @@ usage() {
     echo
     echo -e "  ${BOLD}Optional     :${NC} -w, --wordlist <file>                        Dictionary to use"
     echo "                 -i, --ignore-cert                            'Insecure' SSL connection"
-    echo "                 -z, --timer <millisecondes>                  Wait time between requests"
+    echo "                 -z, --timer <milliseconds>                   Wait time between requests"
     echo "                 -nc, --no-check                              Do not test the site initially"
     echo "                 -p, --proxy <[protocol://]host[:port]>       Use proxy"
     echo "                 -c, --cookie <key=value[;key=value]>         Use cookies"
     echo "                 -A, --user-agent <user-agent>                Custom User Agent"
+    echo "                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)"
     echo "                 -v, --verbose                                Verbose mode"
     echo "                 -nC, --no-crt (use with --wordlist)          Do not check Certificate Transparency Logs (crt.sh)"
     echo "                 -f, --follow                                 Follow redirects"
@@ -70,11 +71,12 @@ usage() {
     echo "                 -w, --wordlist <file>                        Dictionary to use"
     echo
     echo -e "  ${BOLD}Optional     :${NC} -i, --ignore-cert                            'Insecure' SSL connection"
-    echo "                 -z, --timer <millisecondes>                  Wait time between requests"
+    echo "                 -z, --timer <milliseconds>                   Wait time between requests"
     echo "                 -nc, --no-check                              Do not test the site initially"
     echo "                 -p, --proxy <[protocol://]host[:port]>       Use proxy"
     echo "                 -c, --cookie <key=value[;key=value]>         Use cookies"
     echo "                 -A, --user-agent <user-agent>                Custom User Agent"
+    echo "                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)"
     echo "                 -v, --verbose                                Verbose mode"
     echo "                 -f, --follow                                 Follow redirects"
     echo "                 -P, --max-parallel <max-parallel>            Multiprocessing"
@@ -93,11 +95,12 @@ usage() {
     echo "                 -w, --wordlist <file>                        Dictionary to use"
     echo
     echo -e "  ${BOLD}Optional     :${NC} -i, --ignore-cert                            'Insecure' SSL connection"
-    echo "                 -z, --timer <millisecondes>                  Wait time between requests"
+    echo "                 -z, --timer <milliseconds>                   Wait time between requests"
     echo "                 -nc, --no-check                              Do not test the site initially"
     echo "                 -p, --proxy <[protocol://]host[:port]>       Use proxy"
     echo "                 -c, --cookie <key=value[;key=value]>         Use cookies"
     echo "                 -A, --user-agent <user-agent>                Custom User Agent"
+    echo "                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)"
     echo "                 -v, --verbose                                Verbose mode"
     echo "                 -f, --follow                                 Follow redirects"
     echo "                 -P, --max-parallel <max-parallel>            Multiprocessing"
@@ -113,11 +116,12 @@ usage() {
     echo -e "  ${BOLD}Required     :${NC} -u, --url <URL>                              Target URL"
     echo
     echo -e "  ${BOLD}Optional     :${NC} -i, --ignore-cert                            'Insecure' SSL connection"
-    echo "                 -z, --timer <millisecondes>                  Wait time between requests"
+    echo "                 -z, --timer <milliseconds>                   Wait time between requests"
     echo "                 -nc, --no-check                              Do not test the site initially"
     echo "                 -p, --proxy <[protocol://]host[:port]>       Use proxy"
     echo "                 -c, --cookie <key=value[;key=value]>         Use cookies"
     echo "                 -A, --user-agent <user-agent>                Custom User Agent"
+    echo "                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)"
     echo "                 -v, --verbose                                Verbose mode"
     echo "                 -f, --follow                                 Follow redirects"
     echo "                 -I, --inhaler                                Additional search for links"
@@ -134,11 +138,12 @@ usage() {
     echo -e "  ${BOLD}Required     :${NC} -u, --url <URL>                              Target URL"
     echo
     echo -e "  ${BOLD}Optional     :${NC} -i, --ignore-cert                            'Insecure' SSL connection"
-    echo "                 -z, --timer <millisecondes>                  Wait time between requests"
+    echo "                 -z, --timer <milliseconds>                   Wait time between requests"
     echo "                 -nc, --no-check                              Do not test the site initially"
     echo "                 -p, --proxy <[protocol://]host[:port]>       Use proxy"
     echo "                 -c, --cookie <key=value[;key=value]>         Use cookies"
     echo "                 -A, --user-agent <user-agent>                Custom User Agent"
+    echo "                 -t, --timeout <seconds>                      Maximum duration for each request (Default:10)"
     echo "                 -v, --verbose                                Verbose mode"
     echo "                 -f, --follow                                 Follow redirects"
     echo "                 -P, --max-parallel <max-parallel>            Multiprocessing"
@@ -170,6 +175,7 @@ check_options() {
     [[ $INHALER -eq 1 ]] && opts+="inhaler "
     [[ $AGRESSIVE -eq 1 ]] && opts+="agressive "
     [[ -n $COOKIE ]] && opts+="cookie "
+    [[ -n $TIMEOUT ]] && opts+="timeout "
 
     case "$mode" in
         sub)
@@ -295,6 +301,7 @@ while [[ "$#" -gt 0 ]]; do
         -nc|--no-check) NOCHECK=1 ;;
         -p|--proxy) PROXY="$2"; shift ;;
         -A|--user-agent) UA="$2"; shift ;;
+        -t|--timeout) TIMEOUT=$2; shift ;;
         -v|--verbose) VERBOSE=1 ;;
         -nC|--no-crt) NOCRT=1 ;;
         -ns|--no-slash) NOSLASH=1 ;;
@@ -324,7 +331,7 @@ fi
 #=== If a timer is defined, it must be an integer ===
 if [[ -v TIMER ]]; then
     if [[ ! "$TIMER" =~ ^[0-9]+$ ]]; then
-        echo -e "Error : Time must be expressed in milliseconds."
+        echo -e "Error : Delay must be expressed in milliseconds."
         exit 1
     fi
 fi
@@ -360,7 +367,7 @@ if [[ -v PROXY ]]; then
     if [[ "$PROXY" =~ $proxy_regex ]]; then
         CURLPROXY="--proxy $PROXY"
         CURLOPTIONS+=("--proxy" "$PROXY")
-        echo -e "${RED}[!]${NC} Proxy in use : $PROXY"
+        echo -e "${RED}[!] ${NC}Proxy in use : $PROXY"
     else
         echo "Error : Invalid proxy format: $PROXY"
         exit 1
@@ -374,6 +381,18 @@ fi
 [[ $FOLLOW == 1 ]] && CURLOPTIONS+=("-L")
 # Cookies
 [[ -v COOKIE ]] && CURLOPTIONS+=("--cookie" "$COOKIE")
+# Timeout
+if [[ -v TIMEOUT ]]; then
+    if [[ ! "$TIMEOUT" =~ ^[0-9]+$ ]]; then
+        echo -e "Error : Timeout must be expressed in seconds."
+        exit 1
+    else
+        CURLOPTIONS+=("--max-time" "$TIMEOUT")
+    fi
+else
+    TIMEOUT=10
+    CURLOPTIONS+=("--max-time" "$TIMEOUT")
+fi
 
 
 #=== Temporary file indexing temporary files ===
@@ -430,7 +449,7 @@ if [[ $NOCHECK != 1 ]]; then
 
     echo " Checking that the target is reachable..."
     # Curl
-    CODE_AND_LOCATION=$(curl "${CURLOPTIONS[@]}" -D "$TMP_HEADERS" -o "$TMP_HTML" -w "%{http_code} %{url_effective}" --max-time 10 $URL)
+    CODE_AND_LOCATION=$(curl "${CURLOPTIONS[@]}" -D "$TMP_HEADERS" -o "$TMP_HTML" -w "%{http_code} %{url_effective}" $URL)
     CHECK_CODE=$(echo "$CODE_AND_LOCATION" | awk '{print $1}')
     FINAL_LOCATION=$(echo "$CODE_AND_LOCATION" | awk '{print $2}')
 
@@ -441,59 +460,138 @@ if [[ $NOCHECK != 1 ]]; then
         exit 1
     fi
 
+    # Redirects
     if [[ "$CHECK_CODE" =~ ^30 ]]; then
-    echo
-    # Activate redirects
-    while true; do
-        echo -en "${RED}[!] ${NC}"
-        read -p "The page requests a redirect. Do you want to follow them? (yes/No): " answ
-        answ=${answ:-n}
+        echo
 
-        case "$answ" in
-            # Yes : replay the request
-            [yY]|[yY][eE][sS])
-                echo -e "  ${GREEN}>${NC} Redirects will be accepted."
-                FOLLOW=1
-                CURLOPTIONS+=("-L")
-                # Curl again
-                CODE_AND_LOCATION=$(curl "${CURLOPTIONS[@]}" -D "$TMP_HEADERS" -o "$TMP_HTML" -w "%{http_code} %{url_effective}" --max-time 10 $URL)
-                CHECK_CODE=$(echo "$CODE_AND_LOCATION" | awk '{print $1}')
-                FINAL_LOCATION=$(echo "$CODE_AND_LOCATION" | awk '{print $2}')
+        if [[ "$CHECK_CODE" == "300" ]]; then
+            echo "Error : Multiple Choices : ${BOLD}[$CHECK_CODE]${NC}"
+            clean
+            exit 1
+        else
+            echo -e "${BLUE}[+]${NC} $URL ${RED}[$CHECK_CODE]${NC} ($IPADDR)"
+        fi
 
-                # Target is down
-                if [[ "$CHECK_CODE" == "000" ]]; then
-                    echo -e "\nError : The provided URL seems to be down. Try ‘--ignore-cert’ option"
-                    clean
-                    exit 1
-                fi
-                break
-                ;;
-            # No
-            [nN]|[nN][oO])
-                echo -e "  ${GREEN}>${NC} Let's keep going like this."
-                break
-                ;;
-            # Bad answer
-            *)
-                echo "Please answer with ‘y’ (yes) or ‘n’ (no)."
-                ;;
-        esac
-    done
-    #echo
+
+        # Activate redirects
+        while true; do
+            echo -en "${RED}[!] ${NC}"
+            read -p "The page requests a redirect. Do you want to follow them? (yes/No): " answ
+            answ=${answ:-n}
+
+            case "$answ" in
+                # Yes : replay the request
+                [yY]|[yY][eE][sS])
+                    echo -e "  ${GREEN}>${NC} Redirects will be accepted."
+                    FOLLOW=1
+                    CURLOPTIONS+=("-L")
+                    # Curl again
+                    CODE_AND_LOCATION=$(curl "${CURLOPTIONS[@]}" -D "$TMP_HEADERS" -o "$TMP_HTML" -w "%{http_code} %{url_effective}" $URL)
+                    CHECK_CODE=$(echo "$CODE_AND_LOCATION" | awk '{print $1}')
+                    FINAL_LOCATION=$(echo "$CODE_AND_LOCATION" | awk '{print $2}')
+
+                    # Target is down
+                    if [[ "$CHECK_CODE" == "000" ]]; then
+                        echo -e "\nError : The provided URL seems to be down. Try ‘--ignore-cert’ option"
+                        clean
+                        exit 1
+                    fi
+                    break
+                    ;;
+                # No
+                [nN]|[nN][oO])
+                    echo -e "  ${GREEN}>${NC} Let's keep going like this."
+                    break
+                    ;;
+                # Bad answer
+                *)
+                    echo "Please answer with ‘y’ (yes) or ‘n’ (no)."
+                    ;;
+            esac
+        done
+        #echo
+
+    # Client-side error
+    elif [[ "$CHECK_CODE" =~ ^4 ]]; then
+        echo
+        echo -n "Error : "
+        [[ "$CHECK_CODE" == "400" ]] && echo -n "Bad Request : "
+        [[ "$CHECK_CODE" == "401" ]] && echo -n "Unauthorized : "
+        [[ "$CHECK_CODE" == "402" ]] && echo -n "Payment Required : "
+        [[ "$CHECK_CODE" == "403" ]] && echo -n "Forbidden : "
+        [[ "$CHECK_CODE" == "404" ]] && echo -n "Not Found : "
+        [[ "$CHECK_CODE" == "405" ]] && echo -n "Method Not Allowed : "
+        [[ "$CHECK_CODE" == "406" ]] && echo -n "Not Acceptable : "
+        [[ "$CHECK_CODE" == "407" ]] && echo -n "Proxy Authentication Required : "
+        [[ "$CHECK_CODE" == "408" ]] && echo -n "Request Timeout : "
+        [[ "$CHECK_CODE" == "409" ]] && echo -n "Conflict : "
+        [[ "$CHECK_CODE" == "410" ]] && echo -n "Gone : "
+        [[ "$CHECK_CODE" == "411" ]] && echo -n "Length Required : "
+        [[ "$CHECK_CODE" == "412" ]] && echo -n "Precondition Failed : "
+        [[ "$CHECK_CODE" == "413" ]] && echo -n "Payload Too Large : "
+        [[ "$CHECK_CODE" == "414" ]] && echo -n "URI Too Long : "
+        [[ "$CHECK_CODE" == "415" ]] && echo -n "Unsupported Media Type : "
+        [[ "$CHECK_CODE" == "416" ]] && echo -n "Range Not Satisfiable : "
+        [[ "$CHECK_CODE" == "417" ]] && echo -n "Expectation Failed : "
+        [[ "$CHECK_CODE" == "421" ]] && echo -n "Misdirected Request : "
+        [[ "$CHECK_CODE" == "422" ]] && echo -n "Unprocessable Entity : "
+        [[ "$CHECK_CODE" == "423" ]] && echo -n "Locked : "
+        [[ "$CHECK_CODE" == "424" ]] && echo -n "Failed Dependency : "
+        [[ "$CHECK_CODE" == "425" ]] && echo -n "Too Early : "
+        [[ "$CHECK_CODE" == "426" ]] && echo -n "Upgrade Required : "
+        [[ "$CHECK_CODE" == "429" ]] && echo -n "Too Many Requests : "
+        [[ "$CHECK_CODE" == "431" ]] && echo -n "Request Header Fields Too Large : "
+        [[ "$CHECK_CODE" == "451" ]] && echo -n "Unavailable For Legal Reasons : "
+        echo -e "${YELLOW}[$CHECK_CODE]${NC}"
+        clean
+        exit 1
+
+    # Server-side error
+    elif [[ "$CHECK_CODE" =~ ^5 ]]; then
+        echo
+        echo -n "Error : "
+        [[ "$CHECK_CODE" == "500" ]] && echo -n "Internal Server Error : "
+        [[ "$CHECK_CODE" == "501" ]] && echo -n "Not Implemented : "
+        [[ "$CHECK_CODE" == "502" ]] && echo -n "Bad Gateway : "
+        [[ "$CHECK_CODE" == "503" ]] && echo -n "Service Unavailable : "
+        [[ "$CHECK_CODE" == "504" ]] && echo -n "Gateway Timeout : "
+        [[ "$CHECK_CODE" == "505" ]] && echo -n "HTTP Version Not Supported : "
+        [[ "$CHECK_CODE" == "506" ]] && echo -n "Variant Also Negotiates : "
+        [[ "$CHECK_CODE" == "507" ]] && echo -n "Insufficient Storage : "
+        [[ "$CHECK_CODE" == "508" ]] && echo -n "Loop Detected : "
+        [[ "$CHECK_CODE" == "509" ]] && echo -n "Bandwidth Limit Exceeded : "
+        [[ "$CHECK_CODE" == "510" ]] && echo -n "Not Extended : "
+        [[ "$CHECK_CODE" == "511" ]] && echo -n "Network Authentication Required : "
+        echo -e "${YELLOW}[$CHECK_CODE]${NC}"
+        clean
+        exit 1
+
+    # Information
+    elif [[ "$CHECK_CODE" =~ ^10 ]]; then
+        echo
+        [[ "$CHECK_CODE" == "100" ]] && echo -n "Continue : "
+        [[ "$CHECK_CODE" == "101" ]] && echo -n "Switching Protocols : "
+        [[ "$CHECK_CODE" == "102" ]] && echo -n "Processing : "
+        [[ "$CHECK_CODE" == "103" ]] && echo -n "Early Hints : "
+        echo -e "${BLUE}[$CHECK_CODE]${NC}"
+
     fi
 
     # Target is up, resolve DNS name
     IPADDR=$(dig $domain +short)
-    #IPADDR=$(curl $CURLPROXY -s "https://cloudflare-dns.com/dns-query?name=$domain&type=A" -H "accept: application/dns-json" | jq -r '.Answer[0].data')
-    #IPADDR=$(curl -s "https://cloudflare-dns.com/dns-query?name=$domain&type=A" -H "accept: application/dns-json" | jq -r '.Answer[0].data')
-    echo -e "${BLUE}[+]${NC} $URL is up ${GREEN}[$CHECK_CODE]${NC} ($IPADDR)"
+
+    [[ "$CHECK_CODE" =~ ^3 ]] && COLORCODE="${RED}[$CHECK_CODE]${NC}"
+    [[ "$CHECK_CODE" =~ ^1 ]] && COLORCODE="${BLUE}[$CHECK_CODE]${NC}"
+    [[ "$CHECK_CODE" =~ ^2 ]] && COLORCODE="${GREEN}[$CHECK_CODE]${NC}"
+
+    echo -e "${BLUE}[+]${NC} $URL is up $COLORCODE ($IPADDR)"
 
     # If redirects know where
     if [[ $FOLLOW == 1 ]]; then
         if [[ -v FINAL_LOCATION ]]; then
             if [[ $URL != $FINAL_LOCATION ]]; then
 
-                echo -e "${RED}[!]${NC} You have been redirected to: $FINAL_LOCATION"
+                echo -e "${RED}[!] ${NC}You have been redirected to: $FINAL_LOCATION"
                 # Collect protocol and domain
                 if [[ $FINAL_LOCATION =~ ^(https?://)([^/]+) ]]; then
                     protocol=${BASH_REMATCH[1]}
@@ -508,8 +606,10 @@ if [[ $NOCHECK != 1 ]]; then
     if [[ "$MODE" == "crawl" ]]; then
         SITEMAP=$(mktemp)
         TEMP_SITEMAP=$(mktemp)
+        TEMP_ERRORS=$(mktemp)
         echo "$SITEMAP" >> "$TEMP_FILES"
         echo "$TEMP_SITEMAP" >> "$TEMP_FILES"
+        echo "$TEMP_ERRORS" >> "$TEMP_FILES"
         crawl_counter=0
 
         crawl_target="${protocol}${domain}"
@@ -518,6 +618,7 @@ if [[ $NOCHECK != 1 ]]; then
         CRAWL "$loc"
         #=== Wait for the remaining jobs ===
         [[ ! -z $MAXPARALLEL ]] && wait
+
         SORTCRAWL
         # If in crawl mode then close the program
         clean
@@ -656,9 +757,9 @@ clean
 #=== Nothing found ===
 if [[ $DISCOVERED == 0 ]]; then
     if [[ NOCERT != 1 ]]; then
-        echo -e "${RED}[!]${NC} No $LOOT were found. Try ‘--ignore-cert’ option.\n"
+        echo -e "${RED}[!] ${NC}No $LOOT were found. Try ‘--ignore-cert’ option.\n"
     else
-        echo -e "${RED}[!]${NC} No $LOOT were found.\n"
+        echo -e "${RED}[!] ${NC}No $LOOT were found.\n"
     fi
 #=== Success ===
 else
